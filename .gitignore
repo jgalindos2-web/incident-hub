@@ -11,6 +11,7 @@
 .env.production.local
 .env.*
 !.env.example
+.env.example
 *.key
 *.pem
 *.pfx
