@@ -1,0 +1,84 @@
+### ==============================================================================
+### IT Incident Hub - REST API Test Collection (.http)
+### Utiliza VS Code REST Client, IntelliJ HTTP Client o curl
+### ==============================================================================
+
+@baseUrl = http://localhost:8080/api/v1
+
+### 1. Obtener lista de usuarios / técnicos registrados
+GET {{baseUrl}}/users
+Accept: application/json
+
+###
+
+### 2. Registrar un nuevo Incidente (POST /incidents)
+POST {{baseUrl}}/incidents
+Content-Type: application/json
+
+{
+  "title": "Impresora de soporte técnico sin conexión en red",
+  "description": "El equipo asignado en la sala de operaciones perdió dirección IP estática tras actualización de switch.",
+  "category": "HARDWARE",
+  "priority": "ALTA",
+  "reporterName": "Mateo Ruiz",
+  "assignedTechnicianId": 2
+}
+
+###
+
+### 3. Consultar todos los Incidentes con Filtros Combinados (GET /incidents)
+GET {{baseUrl}}/incidents?status=ASIGNADO&priority=ALTA
+Accept: application/json
+
+###
+
+### 4. Consultar un Incidente por ID con su Bitácora (GET /incidents/{id})
+GET {{baseUrl}}/incidents/1
+Accept: application/json
+
+###
+
+### 5. Actualizar Estado de un Incidente (PATCH /incidents/{id}/status)
+PATCH {{baseUrl}}/incidents/1/status
+Content-Type: application/json
+
+{
+  "status": "EN_PROCESO",
+  "authorName": "Sofia Herrera",
+  "notes": "Iniciando diagnóstico físico y sustitución de tarjeta de red"
+}
+
+###
+
+### 6. Asignar un Técnico a un Incidente (PATCH /incidents/{id}/assign)
+PATCH {{baseUrl}}/incidents/1/assign
+Content-Type: application/json
+
+{
+  "technicianId": 1,
+  "assignedByName": "Carlos Gomez"
+}
+
+###
+
+### 7. Registrar Comentario en la Bitácora (POST /incidents/{id}/comments)
+POST {{baseUrl}}/incidents/1/comments
+Content-Type: application/json
+
+{
+  "authorName": "Carlos Gomez",
+  "message": "Se completó la verificación con el usuario y el equipo responde a ping.",
+  "actionType": "COMMENT"
+}
+
+###
+
+### 8. Consultar Métricas Consolidadas del Dashboard (GET /dashboard/stats)
+GET {{baseUrl}}/dashboard/stats
+Accept: application/json
+
+###
+
+### 9. Actuator Health Check
+GET {{baseUrl}}/actuator/health
+Accept: application/json
