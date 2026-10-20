@@ -5,38 +5,45 @@
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-5.2-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Render](https://img.shields.io/badge/Deploy-Render%20PaaS-46E3B7?logo=render&logoColor=black)](https://render.com)
 [![GitLab CI/CD](https://img.shields.io/badge/GitLab%20CI%2FCD-Self--Hosted-FC6D26?logo=gitlab&logoColor=white)](https://gitlab.com)
-[![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-Quality%20Gate-2088FF?logo=github-actions&logoColor=white)](https://github.com)
+[![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-Mirror%20Gate-2088FF?logo=github-actions&logoColor=white)](https://github.com)
 
 ---
 
-## 📌 1. Descripción del Proyecto
-**IT Incident Hub** es un sistema corporativo para la administración, escalamiento y resolución de incidentes de infraestructura y software de TI (alineado a buenas prácticas de ITIL). Desarrollado como proyecto integrador de 3 semanas, implementa un ciclo DevOps de extremo a extremo sustituyendo herramientas privativas de Azure por una solución abierta e interoperable basada en **GitLab (Issues, Boards, CI/CD, Runner Self-Hosted, Environments)** complementada con **GitHub Actions**.
+## 📌 1. Descripción del Proyecto y Arquitectura DevOps
+
+**IT Incident Hub** es una plataforma web para la gestión integral de incidentes de soporte tecnológico alineada a las mejores prácticas de **ITIL v4**. La solución permite el levantamiento, categorización, asignación técnica, control estricto de transiciones de estado, bitácora de resoluciones y analítica operacional en tiempo real.
+
+### Flujo de Sincronización y CI/CD Real:
+1. **Centro de Operaciones (GitLab):** Es el repositorio de trabajo principal donde se crean las ramas (`feature/*`, `fix/*`), se gestionan las tareas en los tableros y se abren los **Merge Requests**.
+2. **Sincronización por Mirroring (GitHub):** GitLab sincroniza automáticamente cada commit y rama hacia un repositorio espejo en GitHub.
+3. **Quality Gate Complementario (GitHub Actions):** Al recibir la sincronización del Mirror, GitHub Actions ejecuta el workflow [pr-validation.yml](file:///c:/Users/50254/Documents/Analisis2/ProyectoFinal/ProyectoFinalAnalisis/incident-hub/.github/workflows/pr-validation.yml) evaluando linters (ESLint, Checkstyle), pruebas de backend y ejecutando la **detección anti-filtración de secretos o archivos `.env`**. El resultado se reporta de vuelta a GitLab mediante la **GitLab Commit Status API** (mostrando el Check Verde o X Roja en el Merge Request).
+4. **CI/CD Principal (GitLab CI/CD):** Tras aprobarse las validaciones y realizar el Merge a `main`, el pipeline [.gitlab-ci.yml](file:///c:/Users/50254/Documents/Analisis2/ProyectoFinal/ProyectoFinalAnalisis/incident-hub/.gitlab-ci.yml) se ejecuta en un **GitLab Runner Self-Hosted** (`self-hosted-runner`), corriendo pruebas de integración, auditoría de vulnerabilidades con `npm audit`, compilando el backend y frontend, y generando un artefacto `.zip` con **Semantic Versioning (`v1.0.0`)** y el hash del commit.
+5. **Despliegue Continuo (Render PaaS):** El runner dispara el despliegue automático hacia Render mediante **Deploy Hooks** (solicitudes HTTP POST autenticadas).
+6. **Seguridad Estricta de Secretos:** **PROHIBIDO subir archivos `.env` a Git**. Las credenciales se inyectan en tiempo de ejecución en GitLab CI/CD Variables, GitHub Secrets y en el Dashboard de Render.
 
 ---
 
-## 👥 2. Simulación de Equipo (3 Identidades de Desarrollo)
-Dado que es un proyecto individual, se simula un equipo multidisciplinario de 3 ingenieros con roles y configuraciones de Git diferenciadas:
+## 👥 2. Integrantes del Equipo (Simulación de Roles)
 
-| Integrante Simulado | Rol Principal | Email en Git | Responsabilidades Clave |
+| Integrante Simulado | Rol Técnico DevOps | Correo Electrónico | Responsabilidades Clave |
 | :--- | :--- | :--- | :--- |
-| **Carlos Gómez** | Lead DevOps & Backend | `carlos.gomez.devops@incidenthub.io` | Pipeline `.gitlab-ci.yml`, Runner Self-Hosted, Docker Compose, Spring Boot Core, Seguridad y Releases. |
-| **Sofía Herrera** | Frontend & UX Specialist | `sofia.herrera.frontend@incidenthub.io` | Aplicación React 18 SPA, UI Glassmorphism, Componentes del Dashboard, ESLint y Vitest. |
-| **Mateo Ruiz** | QA & Reliability Engineer | `mateo.ruiz.qa@incidenthub.io` | Scripts de Backlog en GitLab, Suites JUnit 5/Mockito, Auditoría de Deuda Técnica y Gestión de Staging. |
+| **Carlos Gómez** | Lead DevOps & Backend Engineer | `carlos.gomez.devops@incidenthub.io` | Pipeline `.gitlab-ci.yml`, Runner Self-Hosted, Arquitectura Render, Spring Boot Core, Seguridad y Releases. |
+| **Sofía Herrera** | Frontend & UX Specialist | `sofia.herrera.frontend@incidenthub.io` | Single Page Application (React 18 + Vite), Diseño Vanilla CSS Glassmorphism, ESLint y Vitest. |
+| **Mateo Ruiz** | QA & Reliability Engineer | `mateo.ruiz.qa@incidenthub.io` | Gestión de Backlog en GitLab, Suites JUnit 5/Mockito, Auditoría de Deuda Técnica y Staging Gates. |
 
-### Comandos para Alternar Identidad Localmente:
-Antes de realizar commits o abrir ramas, ejecuta el comando correspondiente en tu terminal:
-
+### Comandos para Alternar Identidad en Git Local:
 ```bash
-# Cambiar a Carlos Gómez (DevOps / Backend)
+# Carlos Gómez (DevOps / Backend)
 git config user.name "Carlos Gomez"
 git config user.email "carlos.gomez.devops@incidenthub.io"
 
-# Cambiar a Sofía Herrera (Frontend)
+# Sofía Herrera (Frontend)
 git config user.name "Sofia Herrera"
 git config user.email "sofia.herrera.frontend@incidenthub.io"
 
-# Cambiar a Mateo Ruiz (QA / Reliability)
+# Mateo Ruiz (QA / Reliability)
 git config user.name "Mateo Ruiz"
 git config user.email "mateo.ruiz.qa@incidenthub.io"
 ```
@@ -44,202 +51,184 @@ git config user.email "mateo.ruiz.qa@incidenthub.io"
 ---
 
 ## 🏗️ 3. Estructura del Repositorio
+
 ```text
 incident-hub/
-├── backend/                  # API REST con Java 17 + Spring Boot 3 + Maven
-│   ├── src/main/java/        # Código fuente (modelos, servicios, controladores)
-│   ├── src/test/java/        # Pruebas unitarias con JUnit 5 y Mockito
-│   ├── checkstyle.xml        # Reglas de estilo para el linter de Java
-│   ├── pom.xml               # Dependencias Maven y plugins (Checkstyle + OWASP)
-│   └── Dockerfile            # Imagen multi-stage optimizada
-├── frontend/                 # Interfaz SPA con React 18 + Vite
-│   ├── src/                  # Componentes (Dashboard, Incidentes, Timeline)
-│   ├── src/__tests__/        # Pruebas de interfaz con Vitest
-│   ├── .eslintrc.cjs         # Configuración del linter ESLint
-│   ├── package.json          # Dependencias y scripts npm
-│   ├── nginx.conf            # Proxy inverso y enrutamiento SPA
-│   └── Dockerfile            # Imagen de producción en dos etapas
-├── database/                 # Scripts SQL para PostgreSQL
-│   ├── 01_init.sql           # DDL: creación de tablas, llaves e índices
-│   └── 02_seed.sql           # DML: usuarios, técnicos e incidentes muestra
-├── tests/                    # Colecciones de prueba e integración
-│   ├── api-tests.http        # Peticiones HTTP ejecutables para todos los endpoints
-│   └── README.md             # Guía de ejecución de pruebas
-├── devops/                   # Automatizaciones y guías de infraestructura
-│   ├── runner.md             # Instalación y registro del GitLab Runner Self-Hosted
-│   └── scripts/
-│       ├── crear_backlog.sh  # Script Bash para crear Backlog en GitLab vía API
-│       ├── crear_backlog.ps1 # Script PowerShell para Windows
-│       └── deploy_environment.sh # Despliegue automatizado por ambiente
-├── docs/                     # Documentación técnica obligatoria
-│   ├── arquitectura.md       # Diagramas de arquitectura y decisiones de diseño
-│   ├── branching.md          # Flujo de ramas y planificación de 6 Merge Requests
-│   ├── deuda-tecnica.md      # Identificación de 5 deudas y resolución de 2
-│   ├── seguridad.md          # Matriz de secretos Masked/Protected en CI/CD
-│   ├── dependencias.md       # Auditoría de paquetes y mitigación de CVEs
-│   ├── estrategia-release.md # Ambientes dev -> staging -> prod y manual gates
-│   └── pipeline-fallido.md   # Caso de estudio con pipeline fallido y corrección
-├── .github/workflows/
-│   └── ci.yml                # Workflow complementario para Pull Requests
+├── .github/
+│   └── workflows/
+│       └── pr-validation.yml       # Quality Gate de GitHub Actions (Mirroring, Linters, Cero .env)
 ├── .gitlab/
-│   └── merge_request_templates/
-│       └── default.md        # Plantilla formal de Merge Requests en GitLab
-├── .gitlab-ci.yml            # Pipeline principal con los 7 stages obligatorios
-├── .env.example              # Plantilla segura de variables de entorno
-├── .gitignore                # Reglas estrictas de exclusión de secretos y temporales
-├── docker-compose.yml        # Orquestación de Postgres, Backend y Frontend
-├── CHANGELOG.md              # Versionado Semántico (v0.1.0 -> v0.2.0 -> v1.0.0)
-└── README.md                 # Guía maestra del proyecto
+│   └── merge_request_templates/    # Plantillas de revisión de código para Merge Requests
+├── backend/                        # API REST Spring Boot 3 (Java 17 + Maven)
+│   ├── src/main/java/              # Controladores, Servicios, DTOs y Repositorios
+│   ├── src/test/java/              # Pruebas unitarias e integradas (JUnit 5 + Mockito)
+│   ├── checkstyle.xml              # Linter estático Java
+│   ├── pom.xml                     # Maven POM y dependencias
+│   └── Dockerfile                  # Empaquetado Multi-Stage para Render
+├── frontend/                       # Aplicación SPA React 18 + Vite
+│   ├── src/                        # Componentes UI, Tablero Kanban, Servicios API
+│   ├── .eslintrc.cjs               # Configuración de ESLint
+│   ├── package.json                # Dependencias Node.js y scripts
+│   ├── vite.config.js              # Configuración de Vite y Vitest
+│   └── Dockerfile                  # Contenedor Nginx para producción
+├── database/                       # Scripts SQL de inicialización
+│   ├── 01_init.sql                 # Esquema de tablas, índices y restricciones
+│   └── 02_seed.sql                 # Datos de prueba para desarrollo
+├── devops/                         # Infraestructura como Código y Scripts DevOps
+│   ├── docker/
+│   │   └── docker-compose.yml      # Entorno de pruebas y desarrollo local
+│   ├── render/
+│   │   └── render.yaml             # Blueprint IaC para despliegue en Render PaaS
+│   └── scripts/
+│       ├── register-runner.sh      # Script de instalación y registro de GitLab Runner
+│       └── deploy_environment.sh   # Script de utilería para despliegues locales
+├── docs/                           # Documentación de Ingeniería y Arquitectura
+│   ├── arquitectura.md             # Diagrama de secuencia y arquitectura Render PaaS (Mermaid)
+│   ├── branching.md                # GitFlow adaptado, commits trazables y reglas de MR en GitLab
+│   ├── deuda-tecnica.md            # Matriz de 5 deudas técnicas y 2 casos resueltos
+│   ├── seguridad-dependencias.md   # Auditoría de CVEs y política de cero .env en Git
+│   └── estrategia-release.md       # Ambientes en Render, SemVer (v1.0.0), rollback y checklist
+├── .env.example                    # Plantilla de variables de entorno (sin credenciales)
+├── .gitignore                      # Bloqueo estricto de secretos, .env y binarios
+├── .gitlab-ci.yml                  # Pipeline principal de GitLab CI/CD (Self-Hosted Runner)
+├── CHANGELOG.md                    # Historial de versiones y notas de entrega
+└── README.md                       # Documentación principal del repositorio
 ```
 
 ---
 
-## ⚡ 4. Requisitos y Ejecución Rápida
+## 🚀 4. Guía de Ejecución en Entorno Local
 
-### Requisitos del Sistema:
-- **Docker** y **Docker Compose** (Recomendado para levantar todo con un clic).
-- O en su defecto para ejecución directa:
-  - Java 17+ (JDK)
-  - Maven 3.8+
-  - Node.js 18+ o 20+
-  - PostgreSQL 15+
+> [!IMPORTANT]
+> **REGLA DE ORO DE SEGURIDAD:** Nunca comittees archivos `.env` a Git. Para desarrollo local, copia `.env.example` a `.env` en tu equipo y añade los valores locales correspondientes.
 
 ### Opción A: Ejecución con Docker Compose (Recomendada)
-1. Clona el repositorio y sitúate en la raíz del proyecto:
-   ```bash
-   cd incident-hub
-   ```
-2. Inicia todos los servicios (Base de Datos + Backend + Frontend):
-   ```bash
-   docker compose up -d --build
-   ```
-3. Accede a las aplicaciones en tu navegador:
-   - **Frontend (Aplicación Web):** [http://localhost:3000](http://localhost:3000)
-   - **Backend API REST:** [http://localhost:8080/api/v1/incidents](http://localhost:8080/api/v1/incidents)
-   - **Actuator Healthcheck:** [http://localhost:8080/api/v1/actuator/health](http://localhost:8080/api/v1/actuator/health)
-   - **PostgreSQL:** `localhost:5432` (Usuario: `incident_user`, BD: `incident_hub_db`, Pass: `incident_pass_secret`).
+Para levantar PostgreSQL 15, el Backend Spring Boot y el Frontend React en contenedores:
 
-### Opción B: Ejecución Manual Local (Sin Docker)
-1. **Base de Datos:**
-   Crea una base de datos en PostgreSQL llamada `incident_hub_db` y ejecuta en orden:
-   - `database/01_init.sql`
-   - `database/02_seed.sql`
-2. **Backend:**
-   ```bash
-   cd backend
-   mvn clean spring-boot:run
-   ```
-3. **Frontend:**
-   ```bash
-   cd frontend
-   npm install
-   npm run dev
-   ```
-
----
-
-## 📅 5. Plan de Entregas por Semana (3 Repositorios / Entregables)
-
-El proyecto integrador se divide en 3 entregas semanales consecutivas:
-
-```text
-semana1/ (Planificación + Arquitectura + Core)  --> Tag v0.1.0
-semana2/ (CI/CD + Calidad + Seguridad)          --> Tag v0.2.0
-semana3/ (Estabilización + Release Producción)  --> Tag v1.0.0
-```
-
-### Tabla de Asignación de Archivos por Semana:
-
-| Semana | Alcance y Contenido de la Entrega | Archivos Correspondientes |
-| :--- | :--- | :--- |
-| **Semana 1** | Planificación, Backlog, Base de Datos, Backend REST y Frontend Base. | `database/*`, `backend/src/*`, `backend/pom.xml`, `backend/Dockerfile`, `frontend/src/*`, `frontend/package.json`, `frontend/Dockerfile`, `docker-compose.yml`, `devops/scripts/crear_backlog.*`, `.gitlab/merge_request_templates/*`, `docs/arquitectura.md`, `docs/branching.md`, `.env.example`, `.gitignore`. |
-| **Semana 2** | Pipeline CI/CD, Pruebas Unitarias, Runner Self-Hosted, Seguridad y Deuda Técnica. | `.gitlab-ci.yml`, `.github/workflows/ci.yml`, `devops/runner.md`, `backend/checkstyle.xml`, `frontend/.eslintrc.cjs`, `backend/src/test/*`, `frontend/src/__tests__/*`, `tests/*`, `docs/seguridad.md`, `docs/deuda-tecnica.md`, `docs/dependencias.md`, `docs/pipeline-fallido.md`. |
-| **Semana 3** | Estabilización, Versionado Semántico, Ambientes y Release v1.0.0. | `CHANGELOG.md`, `docs/estrategia-release.md`, `devops/scripts/deploy_environment.sh`, artefactos generados en `publish`, tags `v1.0.0` y documentación final en `README.md`. |
-
----
-
-## 💻 6. Comandos Exactos para Subir a Cada Repositorio / Entrega
-
-Si la universidad te solicita **3 repositorios separados de GitLab** (o 3 ramas/etiquetas):
-
-### Para la Entrega de la Semana 1:
 ```bash
-# 1. Crear e inicializar el repositorio local para la Semana 1
-cd incident-hub
-git init
-git checkout -b main
+# 1. Posicionarse en la carpeta devops/docker
+cd devops/docker
 
-# 2. Configurar identidad de Carlos Gómez
-git config user.name "Carlos Gomez"
-git config user.email "carlos.gomez.devops@incidenthub.io"
+# 2. Iniciar los servicios en segundo plano
+docker compose up -d --build
 
-# 3. Agregar archivos de la Semana 1
-git add database/ backend/ frontend/ docker-compose.yml devops/scripts/crear_backlog.* .gitlab/ docs/arquitectura.md docs/branching.md .env.example .gitignore README.md
-git commit -m "feat: #1 entrega semana 1 - planificacion, arquitectura y desarrollo base"
-
-# 4. Crear tag semántico
-git tag -a v0.1.0 -m "Release v0.1.0: Entrega Semana 1"
-
-# 5. Vincular y subir al repo de GitLab de la Semana 1
-git remote add origin https://gitlab.com/TU_USUARIO/incident-hub-semana1.git
-git push -u origin main
-git push origin v0.1.0
+# 3. Comprobar el estado y healthchecks
+docker compose ps
 ```
+- **Frontend Web:** `http://localhost:3000`
+- **Backend API:** `http://localhost:8080/api/v1/incidents`
+- **Healthcheck Backend:** `http://localhost:8080/api/v1/actuator/health`
+- **PostgreSQL:** `localhost:5432` (Usuario: `incident_user`, BD: `incident_hub_db`)
 
-### Para la Entrega de la Semana 2:
+### Opción B: Ejecución Manual para Desarrollo Activo
 ```bash
-# 1. Configurar identidad de Mateo Ruiz (QA)
-git config user.name "Mateo Ruiz"
-git config user.email "mateo.ruiz.qa@incidenthub.io"
+# 1. Base de Datos PostgreSQL
+docker run --name local-postgres -e POSTGRES_DB=incident_hub_db -e POSTGRES_USER=incident_user -e POSTGRES_PASSWORD=incident_pass -p 5432:5432 -d postgres:15-alpine
 
-# 2. Agregar archivos de CI/CD, pruebas y seguridad
-git add .gitlab-ci.yml .github/ devops/runner.md backend/checkstyle.xml frontend/.eslintrc.cjs backend/src/test/ frontend/src/__tests__/ tests/ docs/seguridad.md docs/deuda-tecnica.md docs/dependencias.md docs/pipeline-fallido.md
-git commit -m "feat(ci): #18 entrega semana 2 - pipeline completo, runner self-hosted y calidad"
+# 2. Backend Spring Boot (Java 17)
+cd backend
+mvn clean spring-boot:run -Dspring-boot.run.arguments="--DB_URL=jdbc:postgresql://localhost:5432/incident_hub_db --DB_USERNAME=incident_user --DB_PASSWORD=incident_pass"
 
-# 3. Crear tag semántico
-git tag -a v0.2.0 -m "Release v0.2.0: Entrega Semana 2"
-
-# 4. Vincular y subir al repo de GitLab de la Semana 2
-git remote set-url origin https://gitlab.com/TU_USUARIO/incident-hub-semana2.git
-git push -u origin main
-git push origin v0.2.0
-```
-
-### Para la Entrega de la Semana 3:
-```bash
-# 1. Configurar identidad de Carlos Gómez (DevOps Lead)
-git config user.name "Carlos Gomez"
-git config user.email "carlos.gomez.devops@incidenthub.io"
-
-# 2. Agregar estabilización, changelog y estrategia de release
-git add CHANGELOG.md docs/estrategia-release.md devops/scripts/deploy_environment.sh README.md
-git commit -m "feat(release): #25 entrega semana 3 - estabilizacion, ambientes y release v1.0.0"
-
-# 3. Crear tag final de producción
-git tag -a v1.0.0 -m "Release v1.0.0: Entrega Semana 3 Producción Final"
-
-# 4. Vincular y subir al repo de GitLab de la Semana 3
-git remote set-url origin https://gitlab.com/TU_USUARIO/incident-hub-semana3.git
-git push -u origin main
-git push origin v1.0.0
+# 3. Frontend React (Vite)
+cd frontend
+npm install
+npm run dev
 ```
 
 ---
 
-## 📋 7. Lista de Verificación Manual (Checklist en GitLab y GitHub)
+## ⚙️ 5. Configuración del Pipeline de CI/CD
 
-Una vez subido el código, completa los siguientes pasos en las plataformas web:
+```mermaid
+graph TD
+    subgraph GitLab["GitLab (Origen & CI/CD Principal)"]
+        MR["Merge Request en GitLab"]
+        Runner["GitLab Runner (Self-Hosted)<br/>Etiqueta: self-hosted-runner"]
+        Stages["Stages:<br/>1. test (mvn test & npm test)<br/>2. security (npm audit)<br/>3. build_and_package (ZIP v1.0.0)<br/>4. deploy (Deploy Hook)"]
+    end
 
-### En GitLab:
-- [ ] **Crear el Backlog:** Ejecuta en tu terminal `bash devops/scripts/crear_backlog.sh` (o `.\devops\scripts\crear_backlog.ps1`) con tus variables `GITLAB_TOKEN` y `GITLAB_PROJECT_ID` cargadas.
-- [ ] **Verificar Issue Boards:** Ve a **Plan &rarr; Issue boards** y crea listas basadas en las etiquetas `estado::to-do`, `estado::in-progress` y `estado::done`.
-- [ ] **Registrar Runner Self-Hosted:** Sigue las instrucciones de [devops/runner.md](file:///c:/Users/50254/Documents/Analisis2/ProyectoFinal/ProyectoFinalAnalisis/incident-hub/devops/runner.md) y comprueba en **Settings &rarr; CI/CD &rarr; Runners** que tu runner aparezca en verde con las etiquetas `self-hosted` y `shell`.
-- [ ] **Configurar Variables CI/CD:** Ve a **Settings &rarr; CI/CD &rarr; Variables** y crea `DB_PASSWORD` y `GITLAB_TOKEN` marcadas como **Masked** y **Protected**.
-- [ ] **Proteger la rama `main`:** En **Settings &rarr; Repository &rarr; Protected branches**, asegura que `main` solo permita *Merge* a Developers y *Push* a **No one**.
-- [ ] **Proteger los Tags:** En **Settings &rarr; Repository &rarr; Protected tags**, agrega la regla comodín `v*` solo para Maintainers.
-- [ ] **Ejecutar Merge Requests:** Abre y aprueba los 6 MR planificados en [docs/branching.md](file:///c:/Users/50254/Documents/Analisis2/ProyectoFinal/ProyectoFinalAnalisis/incident-hub/docs/branching.md) utilizando las diferentes identidades simuladas.
-- [ ] **Publicar la Release v1.0.0:** En **Deploy &rarr; Releases**, crea la release a partir del tag `v1.0.0` adjuntando el texto de [CHANGELOG.md](file:///c:/Users/50254/Documents/Analisis2/ProyectoFinal/ProyectoFinalAnalisis/incident-hub/CHANGELOG.md).
+    subgraph GitHub["GitHub (Repositorio Espejo)"]
+        Mirror["Mirroring Automático"]
+        Actions["GitHub Actions (pr-validation.yml)<br/>- Detección Anti-Filtración .env<br/>- ESLint & Checkstyle<br/>- Pruebas Rápidas Backend"]
+        StatusReport["Notificación GitLab Commit Status API<br/>(Check Verde o X Roja en MR)"]
+    end
 
-### En GitHub (Workflow complementario):
-- [ ] **Subir el repositorio a GitHub:** Configura un remote adicional `github` y haz `git push github main`.
-- [ ] **Validar GitHub Actions:** Abre un Pull Request de prueba y comprueba en la pestaña **Actions** que el flujo `CI Quality & Security Pipeline` ejecute los linters (Checkstyle y ESLint), las pruebas unitarias y el análisis de dependencias exitosamente.
+    subgraph Render["Render PaaS (Despliegue)"]
+        Hooks["Deploy Hooks (HTTP POST)"]
+        Deploy["Web Service + Static Site + PostgreSQL"]
+    end
+
+    MR -->|Push Automático| Mirror
+    Mirror --> Actions
+    Actions --> StatusReport
+    StatusReport -->|Actualiza Estado| MR
+    MR -->|Merge a main| Runner
+    Runner --> Stages
+    Stages -->|HTTP POST| Hooks
+    Hooks --> Deploy
+```
+
+### 1. Instalación del GitLab Runner Autohospedado
+Ejecuta el script automatizado en tu servidor o equipo local con Linux:
+```bash
+sudo bash devops/scripts/register-runner.sh
+```
+El runner quedará registrado con el tag `self-hosted-runner` y el executor `docker`.
+
+### 2. Variables Secretas Requeridas en GitLab CI/CD
+Configuradas en **Settings &rarr; CI/CD &rarr; Variables** con atributos `Masked` y `Protected`:
+- `RENDER_DEPLOY_HOOK_BACKEND`: URL del Deploy Hook del Backend en Render.
+- `RENDER_DEPLOY_HOOK_FRONTEND`: URL del Deploy Hook del Frontend en Render (opcional).
+
+### 3. Secretos Requeridos en GitHub Actions
+Configurados en **Repository Settings &rarr; Secrets and variables &rarr; Actions**:
+- `GITLAB_TOKEN`: Personal Access Token de GitLab con permisos `api` (para reportar el estado al MR).
+- `GITLAB_PROJECT_ID`: ID numérico del proyecto en GitLab.
+
+---
+
+## ☁️ 6. Configuración de Secretos y Servicios en Render
+
+La infraestructura en Render se aprovisiona mediante el blueprint [devops/render/render.yaml](file:///c:/Users/50254/Documents/Analisis2/ProyectoFinal/ProyectoFinalAnalisis/incident-hub/devops/render/render.yaml):
+
+1. **Base de Datos (`incident-hub-db`):**
+   - Servicio gestionado PostgreSQL 15. La URL de conexión se inyecta dinámicamente mediante `fromDatabase`.
+2. **Backend Web Service (`incident-hub-backend`):**
+   - Variables de entorno en Dashboard:
+     - `SPRING_PROFILES_ACTIVE`: `prod`
+     - `SERVER_PORT`: `8080`
+     - `CORS_ALLOWED_ORIGINS`: Dominio del frontend en Render (ej. `https://incident-hub-frontend.onrender.com`).
+   - Copiar la URL del **Deploy Hook** y guardarla en GitLab como `RENDER_DEPLOY_HOOK_BACKEND`.
+3. **Frontend Static Site (`incident-hub-frontend`):**
+   - Variable de entorno en Dashboard:
+     - `VITE_API_URL`: URL del Backend en Render (ej. `https://incident-hub-backend.onrender.com/api/v1`).
+   - Copiar el **Deploy Hook** y guardarlo en GitLab como `RENDER_DEPLOY_HOOK_FRONTEND`.
+
+---
+
+## 🧪 7. Comandos de Pruebas y Linters Locales
+
+```bash
+# Validar linter de Backend (Checkstyle)
+cd backend && mvn checkstyle:check
+
+# Ejecutar pruebas unitarias de Backend (JUnit 5 + Mockito)
+cd backend && mvn test
+
+# Validar linter de Frontend (ESLint)
+cd frontend && npm run lint
+
+# Ejecutar pruebas unitarias de Frontend (Vitest)
+cd frontend && npm run test
+```
+
+---
+
+## 📄 8. Documentación Detallada de Ingeniería
+
+Consulta los documentos técnicos correspondientes en la carpeta `/docs`:
+- [docs/arquitectura.md](file:///c:/Users/50254/Documents/Analisis2/ProyectoFinal/ProyectoFinalAnalisis/incident-hub/docs/arquitectura.md): Diagramas de secuencia Mermaid, topología en Render y ciclo ITIL.
+- [docs/branching.md](file:///c:/Users/50254/Documents/Analisis2/ProyectoFinal/ProyectoFinalAnalisis/incident-hub/docs/branching.md): Convenciones GitFlow, commits trazables (`#ID` / `AB#ID`) y reglas de MR.
+- [docs/deuda-tecnica.md](file:///c:/Users/50254/Documents/Analisis2/ProyectoFinal/ProyectoFinalAnalisis/incident-hub/docs/deuda-tecnica.md): Matriz de 5 deudas técnicas y resolución trazable de 2 deudas.
+- [docs/seguridad-dependencias.md](file:///c:/Users/50254/Documents/Analisis2/ProyectoFinal/ProyectoFinalAnalisis/incident-hub/docs/seguridad-dependencias.md): Matriz de CVEs evaluados y política estricta de Cero Archivos `.env`.
+- [docs/estrategia-release.md](file:///c:/Users/50254/Documents/Analisis2/ProyectoFinal/ProyectoFinalAnalisis/incident-hub/docs/estrategia-release.md): Topología de ambientes, empaquetado SemVer (`v1.0.0`), rollback y checklist de release.

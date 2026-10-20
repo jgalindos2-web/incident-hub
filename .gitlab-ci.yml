@@ -1,0 +1,185 @@
+# ==============================================================================
+# Pipeline Principal de GitLab CI/CD - IT Incident Hub
+# Ejecutor: GitLab Runner Autohospedado (Tag: self-hosted-runner)
+# ==============================================================================
+
+stages:
+  - test
+  - security
+  - build_and_package
+  - deploy
+
+default:
+  tags:
+    - self-hosted-runner
+
+variables:
+  APP_NAME: "incident-hub"
+  SEMVER_VERSION: "v1.0.0"
+  MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=WARN"
+
+cache:
+  key: "${CI_COMMIT_REF_SLUG}"
+  paths:
+    - .m2/repository/
+    - frontend/node_modules/
+
+# ==============================================================================
+# STAGE 1: TEST
+# ==============================================================================
+
+test:backend_and_integration:
+  stage: test
+  image: maven:3.9.6-eclipse-temurin-17
+  before_script:
+    - echo "=== Ejecutando pruebas unitarias y de integración de Backend ==="
+    - java -version
+    - mvn -version
+  script:
+    - cd backend
+    - mvn clean test $MAVEN_OPTS
+  artifacts:
+    when: always
+    reports:
+      junit:
+        - backend/target/surefire-reports/TEST-*.xml
+    paths:
+      - backend/target/surefire-reports/
+    expire_in: 7 days
+
+test:frontend_integration:
+  stage: test
+  image: node:20-alpine
+  before_script:
+    - echo "=== Instalando dependencias y ejecutando pruebas de Frontend ==="
+    - node -v
+    - npm -v
+  script:
+    - cd frontend
+    - npm ci --prefer-offline
+    - npm run test
+  artifacts:
+    when: always
+    paths:
+      - frontend/coverage/
+    expire_in: 7 days
+
+# ==============================================================================
+# STAGE 2: SECURITY (Auditoría de vulnerabilidades con npm audit)
+# ==============================================================================
+
+security:audit_dependencies:
+  stage: security
+  image: node:20-alpine
+  allow_failure: true
+  script:
+    - echo "=== Ejecutando auditoría de vulnerabilidades en dependencias (npm audit) ==="
+    - cd frontend
+    - npm audit --audit-level=high || echo "⚠ Vulnerabilidades registradas en log para auditoría DevSecOps"
+
+# ==============================================================================
+# STAGE 3: BUILD_AND_PACKAGE (Compilación y Empaquetado SemVer v1.0.0 + Commit SHA)
+# ==============================================================================
+
+build_and_package:artifacts:
+  stage: build_and_package
+  image: maven:3.9.6-eclipse-temurin-17
+  needs:
+    - test:backend_and_integration
+    - test:frontend_integration
+  before_script:
+    # Instalar Node.js y zip en la imagen base para compilar frontend y empaquetar
+    - apt-get update -y && apt-get install -y nodejs npm zip
+  script:
+    - echo "=== 1. Compilando Backend Spring Boot (JAR de Producción) ==="
+    - cd backend
+    - mvn clean package -DskipTests $MAVEN_OPTS
+    - cd ..
+
+    - echo "=== 2. Compilando Frontend React SPA (Bundle Vite) ==="
+    - cd frontend
+    - npm ci --prefer-offline
+    - npm run build
+    - cd ..
+
+    - echo "=== 3. Empaquetando artefacto distribuible con Semantic Versioning ==="
+    - |
+      RELEASE_TAG="${CI_COMMIT_TAG:-$SEMVER_VERSION}"
+      SHORT_SHA="${CI_COMMIT_SHORT_SHA}"
+      ZIP_FILE="${APP_NAME}-${RELEASE_TAG}-${SHORT_SHA}.zip"
+
+      echo "Generando artefacto: ${ZIP_FILE}"
+      mkdir -p dist_package/backend dist_package/frontend dist_package/devops
+
+      # Copiar artefactos binarios y de distribución
+      cp backend/target/*.jar dist_package/backend/
+      cp -r frontend/dist/* dist_package/frontend/
+      cp -r devops/render dist_package/devops/
+
+      # Generar manifiesto de versión
+      cat <<EOF > dist_package/BUILD_INFO.txt
+      Aplicación: ${APP_NAME}
+      Versión: ${RELEASE_TAG}
+      Commit SHA: ${CI_COMMIT_SHA}
+      Commit Corto: ${SHORT_SHA}
+      Rama: ${CI_COMMIT_REF_NAME}
+      Fecha de Build: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
+      Pipeline ID: ${CI_PIPELINE_ID}
+      Compilador: Maven 3.9.6 / Java 17 + Node 20 / Vite 5
+      EOF
+
+      # Comprimir archivo ZIP
+      cd dist_package
+      zip -r "../${ZIP_FILE}" ./*
+      cd ..
+
+      echo "✔ Artefacto empaquetado exitosamente:"
+      ls -lh "${ZIP_FILE}"
+  artifacts:
+    name: "${APP_NAME}-${SEMVER_VERSION}-${CI_COMMIT_SHORT_SHA}"
+    paths:
+      - "*.zip"
+      - backend/target/*.jar
+      - frontend/dist/
+    expire_in: 30 days
+
+# ==============================================================================
+# STAGE 4: DEPLOY (Disparo de Deploy Hook hacia Render tras Merge a main)
+# ==============================================================================
+
+deploy:render_production:
+  stage: deploy
+  image: curlimages/curl:8.6.0
+  needs:
+    - build_and_package:artifacts
+  environment:
+    name: production
+    url: https://incident-hub-backend.onrender.com
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: on_success
+  script:
+    - echo "=== Disparando Despliegue Automático hacia Render PaaS mediante Deploy Hook ==="
+    - |
+      if [ -z "$RENDER_DEPLOY_HOOK_BACKEND" ]; then
+        echo "❌ ERROR: La variable RENDER_DEPLOY_HOOK_BACKEND no está configurada en GitLab CI/CD Variables."
+        exit 1
+      fi
+
+      echo "Enviando solicitud HTTP POST autenticada al Deploy Hook de Render..."
+      HTTP_STATUS=$(curl -s -o response_render.json -w "%{http_code}" -X POST -d "" "$RENDER_DEPLOY_HOOK_BACKEND")
+
+      if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
+        echo "✔ Despliegue disparado exitosamente en Render (Código HTTP: $HTTP_STATUS)."
+        cat response_render.json || true
+      else
+        echo "❌ Error al invocar el Deploy Hook de Render (Código HTTP: $HTTP_STATUS)."
+        cat response_render.json || true
+        exit 1
+      fi
+
+      # Si existe Deploy Hook configurado para el frontend estático, dispararlo también
+      if [ -n "$RENDER_DEPLOY_HOOK_FRONTEND" ]; then
+        echo "Disparando despliegue de Frontend en Render..."
+        curl -s -o /dev/null -X POST -d "" "$RENDER_DEPLOY_HOOK_FRONTEND" && echo "✔ Frontend Deploy Hook ejecutado."
+      fi

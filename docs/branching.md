@@ -1,111 +1,88 @@
-# Estrategia de Ramas, Versionado de Código y Trazabilidad
+# Estrategia de Branching, Commits y Merge Requests - IT Incident Hub
 
-## 1. Modelo de Ramas (Git Branching Model)
-El proyecto utiliza una estrategia basada en **Trunk-Based Development** asistido por ramas de corta duración (*Short-Lived Feature Branches*) y ramas de corrección controlada.
+## 1. Modelo de Ramas: GitFlow Adaptado en GitLab
+
+El desarrollo de **IT Incident Hub** se gestiona centralizadamente en **GitLab**, utilizando un modelo **GitFlow adaptado** gobernado por ramas protegidas y sincronización continua por Mirroring hacia GitHub:
 
 ```mermaid
 gitGraph
-    commit id: "v0.1.0-init"
-    branch feature/1-backend-core
-    checkout feature/1-backend-core
-    commit id: "feat(backend): #1 schema"
-    commit id: "feat(backend): #2 jpa entities"
+    commit id: "v0.9.0" tag: "v0.9.0"
+    branch develop
+    checkout develop
+    commit id: "Inicio Sprint 2"
+    branch feature/12-kanban-filtro
+    checkout feature/12-kanban-filtro
+    commit id: "feat: #12 filtro por categoria"
+    commit id: "test: #12 pruebas vitest"
+    checkout develop
+    merge feature/12-kanban-filtro id: "Merge MR!1 en develop"
+    branch fix/18-status-validation
+    checkout fix/18-status-validation
+    commit id: "fix: AB#18 validacion estricta ITIL"
+    checkout develop
+    merge fix/18-status-validation id: "Merge MR!2 en develop"
     checkout main
-    merge feature/1-backend-core id: "MR!1 Closes #1, #2"
-    branch feature/3-frontend-ui
-    checkout feature/3-frontend-ui
-    commit id: "feat(frontend): #3 create modal"
-    commit id: "feat(frontend): #5 filter bar"
-    checkout main
-    merge feature/3-frontend-ui id: "MR!2 Closes #3, #5"
-    branch fix/8-status-validation
-    checkout fix/8-status-validation
-    commit id: "fix(backend): #8 validate state"
-    checkout main
-    merge fix/8-status-validation id: "MR!3 Closes #8"
+    merge develop id: "Merge develop en main" tag: "v1.0.0"
 ```
-
-### Reglas de las Ramas:
-1. **`main` (Protegida):**
-   - Siempre estable y lista para despliegue.
-   - No se permiten commits directos (`git push origin main` bloqueado).
-   - Solo recibe código mediante **Merge Requests (MR)** aprobados y tras pasar el pipeline de CI/CD.
-2. **`feature/<id>-<descripcion-corta>`:**
-   - Creada desde `main` para implementar nuevas capacidades.
-   - Tiempo de vida recomendado: menor a 2-3 días.
-3. **`fix/<id>-<descripcion-corta>`:**
-   - Creada desde `main` para resolver bugs o incidencias detectadas en CI o staging.
-4. **`refactor/<id>-<descripcion-corta>`:**
-   - Creada desde `main` para optimizaciones o resolución de deuda técnica sin cambiar el comportamiento externo.
 
 ---
 
-## 2. Convención de Commits (Conventional Commits + Trazabilidad)
-Cada commit debe cumplir el formato estricto:
+## 2. Tipología y Reglas de Ramas
+
+| Nombre de Rama | Tipo | Protección en GitLab | Origen & Destino | Propósito y Ciclo de Vida |
+| :--- | :---: | :---: | :--- | :--- |
+| `main` | Permanente | **Protegida (Maintainers)** | Fusión desde `develop` | Refleja el código en producción en Render. Todo merge o tag `v*` en esta rama dispara el pipeline de empaquetado y el Deploy Hook hacia Render. |
+| `develop` | Permanente | **Protegida (Maintainers)** | Fusión desde `feature/*` o `fix/*` | Rama de integración continua. Contiene los últimos cambios aprobados por el equipo. |
+| `feature/<id>-<nombre>` | Temporal | No protegida | Desde `develop` &rarr; Hacia `develop` | Desarrollo de nuevas historias de usuario o capacidades funcionales vinculadas a un Issue (`feature/14-incident-export`). |
+| `fix/<id>-<nombre>` | Temporal | No protegida | Desde `develop` &rarr; Hacia `develop` | Corrección de defectos, bugs de pruebas o deuda técnica identificada (`fix/18-status-validation`). |
+| `hotfix/<id>-<nombre>` | Temporal | No protegida | Desde `main` &rarr; Hacia `main` y `develop` | Remediación de emergencias críticas (Severidad 1) detectadas directamente en Producción. |
+
+---
+
+## 3. Convención de Commits y Trazabilidad con GitLab Issues
+
+Se implementa la especificación **Conventional Commits 1.0.0**, requiriendo el identificador de tarea de los tableros de GitLab o Azure Boards (`#ID` o `AB#ID`):
+
+### Formato Estándar:
 ```text
-<tipo>(<alcance>): #<ID_ISSUE> <descripción imperativa en presente>
+<tipo>(<alcance>): <prefijo-issue> <descripción concisa en imperativo>
 
-[Cuerpo opcional detallando el motivo del cambio]
+[cuerpo explicativo detallando motivación técnica o breaking changes]
 
-[Pie opcional: Closes #<ID_ISSUE>]
+Closes #ID / Resolves AB#ID
 ```
 
 ### Tipos Permitidos:
-- `feat`: Nueva funcionalidad.
-- `fix`: Corrección de bug.
-- `refactor`: Refactorización de código sin alterar funcionalidad.
-- `test`: Incorporación o mejora de pruebas unitarias o de integración.
-- `docs`: Modificaciones únicamente en documentación Markdown.
-- `ci`: Cambios en la configuración de GitLab CI/CD o GitHub Actions.
-- `chore`: Tareas de mantenimiento general, dependencias o configuración.
-
-### Ejemplos Reales Válidos:
-```bash
-git commit -m "feat(backend): #1 crear esquema DDL inicial de PostgreSQL en database/01_init.sql"
-git commit -m "feat(frontend): #3 construir componente IncidentCreateModal con validación"
-git commit -m "fix(backend): #8 evitar transiciones a mismo estado lanzando BadRequestException"
-git commit -m "test(backend): #16 añadir suite de pruebas unitarias IncidentServiceTest"
-git commit -m "ci(gitlab): #18 configurar stages de calidad y tags para runner self-hosted"
-```
+- `feat`: Nueva funcionalidad para usuarios o técnicos (`feat(kanban): #12 añadir filtros dinámicos por estado`).
+- `fix`: Corrección de un defecto o fallo de lógica (`fix(backend): AB#18 validar transición de estados ITIL`).
+- `docs`: Modificaciones exclusivas a documentación técnica (`docs: #5 actualizar diagrama de sincronización GitLab-GitHub`).
+- `refactor`: Cambios de código sin alteración de funcionalidad externa (`refactor(api): #17 implementar DTOs y validación JSR-380`).
+- `test`: Creación o mejora de pruebas unitarias/integradas (`test(service): #18 agregar suite de pruebas para BadRequestException`).
+- `ci`: Modificaciones en pipelines, scripts o runners (`ci(gitlab): #1 actualizar stages a build_and_package y deploy`).
+- `chore`: Tareas auxiliares de configuración o dependencias (`chore(deps): #3 actualizar postgresql jdbc a 42.7.3`).
 
 ---
 
-## 3. Planificación de 6 Merge Requests (MR) Reales
+## 4. Flujo de Trabajo y Reglas para Merge Requests (MR) en GitLab
 
-Para cumplir con la simulación del equipo y la trazabilidad exigida, se planifican los siguientes 6 Merge Requests reales:
+Dado que **GitLab es el repositorio de trabajo primario**, el ciclo de revisión y fusión sigue un protocolo estricto:
 
-| MR # | Título del Merge Request | Rama Origen | Autor | Revisor | Issues Relacionados | Resultado / Cierre |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **MR!1** | `feat: persistencia de datos y API REST de incidentes` | `feature/1-backend-core` | Carlos Gómez | Mateo Ruiz | Closes #1, Closes #2, Closes #4 | Entidad JPA, DDL Postgres, Endpoints GET/POST `/incidents`. |
-| **MR!2** | `feat: interfaz visual React, tabla y filtros` | `feature/3-frontend-ui` | Sofía Herrera | Carlos Gómez | Closes #3, Closes #5 | Componentes React, sistema CSS dark glassmorphism, consumo API. |
-| **MR!3** | `feat: flujo de asignación y bitácora de auditoría` | `feature/6-asignacion-bitacora` | Mateo Ruiz | Sofía Herrera | Closes #6, Closes #7, Closes #10 | Endpoints PATCH `/assign` y POST `/comments`, componente Timeline. |
-| **MR!4** | `fix: validación estricta de estados y manejo de excepciones` | `fix/8-status-validation` | Carlos Gómez | Mateo Ruiz | Closes #8, Closes #9 | Manejo de 400 Bad Request en transiciones inválidas y feedback visual en UI. |
-| **MR!5** | `refactor: resolución de deuda técnica en DTOs y consultas SQL` | `refactor/17-deuda-tecnica-dtos` | Mateo Ruiz | Carlos Gómez | Closes #17 | Desacoplamiento de entidades en controladores y queries optimizadas. |
-| **MR!6** | `feat: dashboard analítico con KPIs y distribución técnica` | `feature/13-dashboard-kpis` | Sofía Herrera | Mateo Ruiz | Closes #13, Closes #14, Closes #15 | Endpoint `/dashboard/stats`, tarjetas animadas y gráficos de barras. |
-
----
-
-## 4. Flujo Paso a Paso para Crear un MR
-
-1. **Crear rama desde `main` actualizado:**
-   ```bash
-   git checkout main
-   git pull origin main
-   git checkout -b feature/1-backend-core
-   ```
-2. **Realizar cambios y commits con trazabilidad:**
-   ```bash
-   git add backend/
-   git commit -m "feat(backend): #2 implementar modelo JPA Incident y DTOs"
-   ```
-3. **Publicar la rama en el repositorio:**
-   ```bash
-   git push -u origin feature/1-backend-core
-   ```
-4. **Abrir el Merge Request en la interfaz de GitLab:**
-   - Seleccionar la plantilla `.gitlab/merge_request_templates/default.md`.
-   - Llenar el checklist y adjuntar la evidencia de pruebas locales.
-   - Asignar al revisor correspondiente.
-5. **Aprobación y Fusión:**
-   - El revisor valida que el pipeline de CI esté verde y aprueba.
-   - Se selecciona **Squash commits** y **Delete source branch**.
+1. **Apertura del Merge Request en GitLab:**
+   - La rama de trabajo (`feature/*` o `fix/*`) se envía a GitLab.
+   - Se crea el Merge Request con destino a `develop` (o a `main` para releases).
+2. **Sincronización Automática por Mirroring:**
+   - GitLab sincroniza la rama hacia el repositorio espejo en GitHub.
+   - En GitHub Actions, se dispara de inmediato el workflow `pr-validation.yml`.
+3. **Validación y Notificación de Estado:**
+   - GitHub Actions ejecuta:
+     - 🔒 Escaneo de detección de archivos `.env` y llaves privadas.
+     - 🔍 Linter Frontend (ESLint) y Linter Backend (Checkstyle).
+     - 🧪 Pruebas unitarias de Backend (JUnit 5 + Mockito).
+   - Mediante la **GitLab Commit Status API**, GitHub Actions reporta el resultado directamente al commit de GitLab:
+     - Si todo pasa: Se muestra el **Check Verde (`✔ github-actions/quality-gate`)** en el Merge Request de GitLab.
+     - Si algo falla: Se muestra la **X Roja (`❌ github-actions/quality-gate`)**, bloqueando la fusión.
+4. **Revisión de Pares (Peer Review):**
+   - Mínimo **1 aprobación obligatoria** por un revisor técnico antes del merge.
+5. **Fusión y Despliegue:**
+   - Se ejecuta la fusión en GitLab utilizando **Merge Commit** o **Squash and Merge**.
+   - Tras el merge en `main`, el pipeline de GitLab CI (`.gitlab-ci.yml`) en el `self-hosted-runner` compila, empaqueta el artefacto `.zip` y dispara el Deploy Hook hacia Render.
