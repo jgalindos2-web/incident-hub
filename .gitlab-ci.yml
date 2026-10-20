@@ -9,10 +9,6 @@ stages:
   - build_and_package
   - deploy
 
-default:
-  tags:
-    - self-hosted-runner
-
 variables:
   APP_NAME: "incident-hub"
   SEMVER_VERSION: "v1.0.0"
