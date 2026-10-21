@@ -88,38 +88,48 @@ security:audit_dependencies:
 
 build_and_package:artifacts:
   stage: build_and_package
-  image: maven:3.9.6-eclipse-temurin-17
+  image: node:20-alpine
   needs:
     - test:backend_and_integration
     - test:frontend_integration
   before_script:
-    - apt-get update -y && apt-get install -y nodejs npm zip
+    - apk add --no-cache openjdk17 maven zip
   script:
-    - echo "=== 1. Compilando Backend Spring Boot (JAR de Producción) ==="
+    - echo "=== 1. Verificando versiones del entorno de compilación ==="
+    - node -v
+    - npm -v
+    - java -version
+    - mvn -version
+
+    - echo "=== 2. Compilando Backend Spring Boot (JAR de Producción) ==="
     - cd backend
     - mvn clean package -DskipTests $MAVEN_OPTS
     - cd ..
 
-    - echo "=== 2. Compilando Frontend React SPA (Bundle Vite) ==="
+    - echo "=== 3. Compilando Frontend React SPA (Bundle Vite) ==="
     - cd frontend
     - npm ci --prefer-offline
     - npm run build
     - cd ..
 
-    - echo "=== 3. Empaquetando artefacto distribuible con Semantic Versioning ==="
+    - echo "=== 4. Empaquetando artefactos finales v1.0.0 ==="
+    - mkdir -p dist_release/public
+    - cp backend/target/*.jar dist_release/
+    - cp -r frontend/dist/* dist_release/public/
+
     - |
       RELEASE_TAG="${CI_COMMIT_TAG:-$SEMVER_VERSION}"
       SHORT_SHA="${CI_COMMIT_SHORT_SHA}"
       ZIP_FILE="${APP_NAME}-${RELEASE_TAG}-${SHORT_SHA}.zip"
 
-      echo "Generando paquete distribuible: ${ZIP_FILE}"
+      echo "Generando paquete distribuible complementario: ${ZIP_FILE}"
       mkdir -p dist_package/backend dist_package/frontend dist_package/devops
 
       cp backend/target/*.jar dist_package/backend/
       cp -r frontend/dist/* dist_package/frontend/
       cp -r devops/render dist_package/devops/
 
-      cat <<EOF > dist_package/BUILD_INFO.txt
+      cat <<EOF > dist_release/BUILD_INFO.txt
       Aplicación: ${APP_NAME}
       Versión: ${RELEASE_TAG}
       Commit SHA: ${CI_COMMIT_SHA}
@@ -127,22 +137,26 @@ build_and_package:artifacts:
       Rama: ${CI_COMMIT_REF_NAME}
       Fecha de Build: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
       Pipeline ID: ${CI_PIPELINE_ID}
-      Compilación: Spring Boot 3 / Java 17 + React 18 / Vite 5
+      Compilación: Spring Boot 3 / Java 17 + React 18 / Vite 5 (Node.js 20)
       EOF
+
+      cp dist_release/BUILD_INFO.txt dist_package/
 
       cd dist_package
       zip -r "../${ZIP_FILE}" ./*
       cd ..
 
-      echo "✔ Artefacto generado exitosamente:"
+      echo "✔ Artefactos generados exitosamente en dist_release y paquete zip:"
+      ls -lh dist_release/
       ls -lh "${ZIP_FILE}"
   artifacts:
-    name: "${APP_NAME}-${SEMVER_VERSION}-${CI_COMMIT_SHORT_SHA}"
+    name: "release-v1.0.0-$CI_COMMIT_SHORT_SHA"
     paths:
+      - dist_release/
       - "*.zip"
       - backend/target/*.jar
       - frontend/dist/
-    expire_in: 30 days
+    expire_in: 1 week
 
 # ==============================================================================
 # STAGE 4: DEPLOY (Disparo de Deploy Hook hacia Render tras Merge a main)
