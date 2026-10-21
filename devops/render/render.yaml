@@ -36,7 +36,7 @@ services:
       - key: DB_URL
         fromDatabase:
           name: incident-hub-db
-          property: connectionString
+          property: jdbcConnectionString
       - key: DB_USERNAME
         fromDatabase:
           name: incident-hub-db
