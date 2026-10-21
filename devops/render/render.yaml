@@ -33,12 +33,12 @@ services:
         value: prod
       - key: SERVER_PORT
         value: 8080
-      - key: DB_URL
+      - key: DB_HOST
         fromDatabase:
           name: incident-hub-db
           property: host
-        # Formato construido: jdbc:postgresql://<host>:<port>/<database>
-        value: jdbc:postgresql://%s:5432/incident_hub_db
+      - key: DB_URL
+        value: jdbc:postgresql://incident-hub-db:5432/incident_hub_db
       - key: DB_USERNAME
         fromDatabase:
           name: incident-hub-db
@@ -59,7 +59,7 @@ services:
     rootDir: frontend
     buildCommand: npm ci && npm run build
     staticPublishPath: ./dist
-    plan: free # Sin el campo region (despliegue global en CDN de Render)
+    plan: free
     autoDeploy: false # Despliegue gobernado por Deploy Hooks
     envVars:
       - key: VITE_API_URL
