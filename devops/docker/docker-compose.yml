@@ -1,0 +1,87 @@
+# ==============================================================================
+# Docker Compose - Entorno de Desarrollo Local
+# Proyecto: IT Incident Hub
+# Ubicación: devops/docker/docker-compose.yml
+# ==============================================================================
+
+version: '3.8'
+
+services:
+  # ----------------------------------------------------------------------------
+  # Servicio 1: Base de Datos Relacional PostgreSQL 15
+  # ----------------------------------------------------------------------------
+  postgres:
+    image: postgres:15-alpine
+    container_name: incident-hub-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-incident_hub_db}
+      POSTGRES_USER: ${DB_USERNAME:-incident_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-incident_pass_dev}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ../../database/01_init.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+      - ../../database/02_seed.sql:/docker-entrypoint-initdb.d/02_seed.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-incident_user} -d ${DB_NAME:-incident_hub_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - incident_network
+
+  # ----------------------------------------------------------------------------
+  # Servicio 2: Backend REST API (Spring Boot 3 / Java 17)
+  # ----------------------------------------------------------------------------
+  backend:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile
+    container_name: incident-hub-backend-dev
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SERVER_PORT: 8080
+      DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-incident_hub_db}
+      DB_USERNAME: ${DB_USERNAME:-incident_user}
+      DB_PASSWORD: ${DB_PASSWORD:-incident_pass_dev}
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8080/api/v1/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 25s
+    networks:
+      - incident_network
+
+  # ----------------------------------------------------------------------------
+  # Servicio 3: Frontend SPA (React 18 + Vite + Nginx)
+  # ----------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ../../frontend
+      dockerfile: Dockerfile
+    container_name: incident-hub-frontend-dev
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "3000:80"
+    networks:
+      - incident_network
+
+networks:
+  incident_network:
+    driver: bridge
+
+volumes:
+  postgres_dev_data:
+    driver: local
