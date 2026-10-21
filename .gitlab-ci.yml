@@ -176,24 +176,23 @@ deploy:render_production:
   script:
     - echo "=== Disparando Despliegue Automático hacia Render PaaS mediante Deploy Hook ==="
     - |
-      if [ -z "$RENDER_DEPLOY_HOOK_BACKEND" ]; then
-        echo "❌ ERROR: La variable RENDER_DEPLOY_HOOK_BACKEND no está configurada en GitLab CI/CD Variables."
-        exit 1
-      fi
+      trigger_hook() {
+        NAME="$1"
+        URL="$2"
+        if [ -z "$URL" ]; then
+          echo "❌ ERROR: Falta la variable de Deploy Hook de $NAME en GitLab CI/CD Variables."
+          exit 1
+        fi
+        echo "Enviando POST al Deploy Hook de $NAME en Render..."
+        STATUS=$(curl -s -o "response_$NAME.json" -w "%{http_code}" -X POST -d "" "$URL")
+        if [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 300 ]; then
+          echo "✔ $NAME: despliegue disparado (HTTP $STATUS)."
+        else
+          echo "❌ $NAME: error al invocar el Deploy Hook (HTTP $STATUS)."
+          cat "response_$NAME.json" || true
+          exit 1
+        fi
+      }
 
-      echo "Enviando solicitud HTTP POST al Deploy Hook de Backend en Render..."
-      HTTP_STATUS=$(curl -s -o response_render.json -w "%{http_code}" -X POST -d "" "$RENDER_DEPLOY_HOOK_BACKEND")
-
-      if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
-        echo "✔ Despliegue disparado exitosamente en Render (Código HTTP: $HTTP_STATUS)."
-        cat response_render.json || true
-      else
-        echo "❌ Error al invocar el Deploy Hook de Render (Código HTTP: $HTTP_STATUS)."
-        cat response_render.json || true
-        exit 1
-      fi
-
-      if [ -n "$RENDER_DEPLOY_HOOK_FRONTEND" ]; then
-        echo "Disparando despliegue de Frontend en Render..."
-        curl -s -o /dev/null -X POST -d "" "$RENDER_DEPLOY_HOOK_FRONTEND" && echo "✔ Frontend Deploy Hook ejecutado."
-      fi
+      trigger_hook "backend" "$RENDER_DEPLOY_HOOK_BACKEND"
+      trigger_hook "frontend" "$RENDER_DEPLOY_HOOK_FRONTEND"
