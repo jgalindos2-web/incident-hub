@@ -71,13 +71,14 @@ services:
       - type: rewrite
         source: /*
         destination: /index.html
+    headers:
       # Cabeceras de seguridad HTTP en producción
-      - type: header
-        source: /*
-        headers:
-          - key: X-Frame-Options
-            value: DENY
-          - key: X-Content-Type-Options
-            value: nosniff
-          - key: Referrer-Policy
-            value: strict-origin-when-cross-origin
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
