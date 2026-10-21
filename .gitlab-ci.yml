@@ -53,10 +53,8 @@ test:frontend_integration:
   script:
     - cd frontend
     - npm ci --prefer-offline
-    # Ejecución no interactiva de la suite de pruebas
-    - npm test -- --watchAll=false || npx vitest run
-    # Garantizar que el directorio de cobertura exista para evitar fallos de recolección
-    - mkdir -p coverage
+    # Ejecución no interactiva de la suite de pruebas con generación de cobertura
+    - npx vitest run --coverage
   artifacts:
     when: always
     paths:

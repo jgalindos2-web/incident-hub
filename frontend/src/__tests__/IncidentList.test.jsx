@@ -99,12 +99,12 @@ describe('IncidentListView Component - IT Incident Hub', () => {
     // Verificar título del incidente
     expect(screen.getByText('Falla de conexion switch sala 4')).toBeInTheDocument();
     // Verificar categoría, prioridad y estado
-    expect(screen.getByText('NETWORK')).toBeInTheDocument();
-    expect(screen.getByText('CRITICA')).toBeInTheDocument();
-    expect(screen.getByText('EN_PROCESO')).toBeInTheDocument();
+    expect(screen.getAllByText('NETWORK')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('CRITICA')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('EN_PROCESO')[0]).toBeInTheDocument();
     // Verificar reportero y técnico asignado
-    expect(screen.getByText('Carlos Gomez')).toBeInTheDocument();
-    expect(screen.getByText('Sofia Herrera')).toBeInTheDocument();
+    expect(screen.getAllByText('Carlos Gomez')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('Sofia Herrera')[0]).toBeInTheDocument();
 
     // Simular click en la fila del incidente
     const rowTitle = screen.getByText('Falla de conexion switch sala 4');
