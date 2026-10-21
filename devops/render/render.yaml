@@ -1,24 +1,20 @@
 # ==============================================================================
-# Blueprint de Infraestructura como Código (IaC) para Render PaaS
+# Blueprint de Infraestructura como Código (IaC) para Render
 # Proyecto: IT Incident Hub
 # Ubicación: devops/render/render.yaml
 # ==============================================================================
 
 databases:
-  # ----------------------------------------------------------------------------
-  # Servicio Gestionado de Base de Datos PostgreSQL 15
-  # ----------------------------------------------------------------------------
   - name: incident-hub-db
     databaseName: incident_hub_db
     user: incident_user
     plan: free
     region: oregon
-    ipAllowList: [] # Permite tráfico seguro dentro de la red privada de Render
+    postgresMajorVersion: "15"
+    ipAllowList: [] # Solo servicios internos de Render pueden conectarse
 
 services:
-  # ----------------------------------------------------------------------------
-  # 1. Backend REST API - Web Service (Spring Boot 3 / Java 17 en Contenedor)
-  # ----------------------------------------------------------------------------
+  # 1. Backend REST API (Spring Boot en Docker)
   - type: web
     name: incident-hub-backend
     runtime: docker
@@ -27,18 +23,26 @@ services:
     region: oregon
     plan: free
     healthCheckPath: /api/v1/actuator/health
-    autoDeploy: false # Despliegue gobernado exclusivamente por Deploy Hooks de GitLab CI/CD
+    autoDeployTrigger: "off" # Despliegue solo por Deploy Hook desde tu pipeline
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: prod
-      - key: SERVER_PORT
-        value: 8080
+      - key: PORT
+        value: "8080"
+      - key: JAVA_TOOL_OPTIONS
+        value: "-XX:MaxRAMPercentage=75"
       - key: DB_HOST
         fromDatabase:
           name: incident-hub-db
           property: host
-      - key: DB_URL
-        value: jdbc:postgresql://incident-hub-db:5432/incident_hub_db
+      - key: DB_PORT
+        fromDatabase:
+          name: incident-hub-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: incident-hub-db
+          property: database
       - key: DB_USERNAME
         fromDatabase:
           name: incident-hub-db
@@ -48,32 +52,24 @@ services:
           name: incident-hub-db
           property: password
       - key: CORS_ALLOWED_ORIGINS
-        sync: false # Configurado de forma manual y segura en el Dashboard de Render
+        sync: false # Se pone a mano en el Dashboard
 
-  # ----------------------------------------------------------------------------
-  # 2. Frontend Web SPA - Static Site (React 18 + Vite)
-  # ----------------------------------------------------------------------------
+  # 2. Frontend SPA (React + Vite) como sitio estático
   - type: web
     name: incident-hub-frontend
     runtime: static
     rootDir: frontend
     buildCommand: npm ci && npm run build
     staticPublishPath: ./dist
-    plan: free
-    autoDeploy: false # Despliegue gobernado por Deploy Hooks
+    autoDeployTrigger: "off"
     envVars:
       - key: VITE_API_URL
-        fromService:
-          type: web
-          name: incident-hub-backend
-          envVarKey: RENDER_EXTERNAL_URL
+        sync: false # Ej: https://incident-hub-backend.onrender.com
     routes:
-      # Regla de reescritura para enrutamiento SPA con React Router
       - type: rewrite
         source: /*
         destination: /index.html
     headers:
-      # Cabeceras de seguridad HTTP en producción
       - path: /*
         name: X-Frame-Options
         value: DENY
