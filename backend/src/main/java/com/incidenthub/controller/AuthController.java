@@ -2,8 +2,11 @@ package com.incidenthub.controller;
 
 import com.incidenthub.dto.AuthResponseDTO;
 import com.incidenthub.dto.LoginRequestDTO;
+import com.incidenthub.dto.RegisterRequestDTO;
+import com.incidenthub.dto.UserDTO;
 import com.incidenthub.model.User;
 import com.incidenthub.repository.UserRepository;
+import com.incidenthub.service.UserService;
 import jakarta.validation.Valid;
 import java.util.Collections;
 import java.util.Map;
@@ -27,9 +30,28 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final UserRepository userRepository;
+    private final UserService userService;
 
-    public AuthController(UserRepository userRepository) {
+    public AuthController(UserRepository userRepository, UserService userService) {
         this.userRepository = userRepository;
+        this.userService = userService;
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<AuthResponseDTO> register(@Valid @RequestBody RegisterRequestDTO request) {
+        UserDTO created = userService.registerUser(request);
+        String sessionToken = "session-" + created.getRole().toLowerCase() + "-"
+                + UUID.randomUUID().toString().substring(0, 8);
+
+        AuthResponseDTO response = new AuthResponseDTO(
+                created.getId(),
+                created.getUsername(),
+                created.getFullName(),
+                created.getEmail(),
+                created.getRole(),
+                sessionToken
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PostMapping("/login")

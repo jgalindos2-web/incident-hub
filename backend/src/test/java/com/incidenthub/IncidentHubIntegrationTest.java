@@ -121,4 +121,35 @@ class IncidentHubIntegrationTest {
                 .andExpect(jsonPath("$.closedIncidents", is(1)))
                 .andExpect(jsonPath("$.openIncidents", is(0)));
     }
+
+    @Test
+    @DisplayName("Debe registrar un nuevo usuario ADMIN y TECHNICIAN exitosamente y rechazar duplicados")
+    void shouldRegisterUsersSuccessfully() throws Exception {
+        com.incidenthub.dto.RegisterRequestDTO adminRequest = new com.incidenthub.dto.RegisterRequestDTO(
+                "superadmin", "securePass123", "Super Admin", "superadmin@incidenthub.io", "ADMIN");
+
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(adminRequest)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.username", is("superadmin")))
+                .andExpect(jsonPath("$.role", is("ADMIN")))
+                .andExpect(jsonPath("$.email", is("superadmin@incidenthub.io")));
+
+        com.incidenthub.dto.RegisterRequestDTO techRequest = new com.incidenthub.dto.RegisterRequestDTO(
+                "nuevotech", "securePass123", "Nuevo Tecnico", "nuevotech@incidenthub.io", "TECHNICIAN");
+
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(techRequest)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.username", is("nuevotech")))
+                .andExpect(jsonPath("$.role", is("TECHNICIAN")));
+
+        // Intento de duplicado de username
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(adminRequest)))
+                .andExpect(status().isBadRequest());
+    }
 }

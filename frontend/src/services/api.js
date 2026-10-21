@@ -65,6 +65,14 @@ export const api = {
     });
   },
 
+  // Registro de nuevos usuarios en base de datos PostgreSQL
+  register: async ({ username, password, fullName, email, role }) => {
+    return await request('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ username, password, fullName, email, role }),
+    });
+  },
+
   // Verificación de sesión en base de datos
   verifySession: async (userId) => {
     return await request(`/auth/verify/${userId}`);
