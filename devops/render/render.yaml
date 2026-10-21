@@ -36,7 +36,9 @@ services:
       - key: DB_URL
         fromDatabase:
           name: incident-hub-db
-          property: jdbcConnectionString
+          property: host
+        # Formato construido: jdbc:postgresql://<host>:<port>/<database>
+        value: jdbc:postgresql://%s:5432/incident_hub_db
       - key: DB_USERNAME
         fromDatabase:
           name: incident-hub-db
@@ -57,8 +59,7 @@ services:
     rootDir: frontend
     buildCommand: npm ci && npm run build
     staticPublishPath: ./dist
-    region: oregon
-    plan: free
+    plan: free # Sin el campo region (despliegue global en CDN de Render)
     autoDeploy: false # Despliegue gobernado por Deploy Hooks
     envVars:
       - key: VITE_API_URL
