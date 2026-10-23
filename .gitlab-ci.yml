@@ -78,10 +78,10 @@ security:audit_dependencies:
   script:
     - Write-Host "=== 1. Auditoria de dependencias en Frontend (npm audit) ==="
     - Set-Location frontend
-    - npm audit --audit-level=high; if ($LASTEXITCODE -ne 0) { Write-Host "Auditoria completada con alertas permitidas." }
+    - 'npm audit --audit-level=high; if ($LASTEXITCODE -ne 0) { Write-Host "Auditoria completada con alertas permitidas." }'
     - Set-Location ..
     - Write-Host "=== 2. Auditoria de dependencias en Backend ==="
-    - Write-Host "Backend empaquetado en Java/Maven: verificado en classpath."
+    - 'Write-Host "Backend empaquetado en Java/Maven: verificado en classpath."'
 
 # ==============================================================================
 # STAGE 3: BUILD_AND_PACKAGE
