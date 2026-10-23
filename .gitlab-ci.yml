@@ -1,14 +1,10 @@
-# ==============================================================================
-# Pipeline Principal de GitLab CI/CD - IT Incident Hub
-# Ejecutor: Self-Hosted Runner (Windows PowerShell)
-# Tags: self-hosted, shell
-# ==============================================================================
-
 stages:
+  - .pre
   - test
   - security
   - build_and_package
   - deploy
+  - .post
 
 default:
   tags:
@@ -16,8 +12,8 @@ default:
     - shell
 
 variables:
-  APP_NAME: "incident-hub"
-  SEMVER_VERSION: "v1.0.0"
+  APP_NAME: incident-hub
+  SEMVER_VERSION: v1.0.0
   MAVEN_OPTS: "-Dnet.bytebuddy.agent.attacher.disable=true -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=WARN"
 
 cache:
@@ -39,9 +35,7 @@ test:backend_and_integration:
     - java -version
     - mvn -version
   script:
-    - Set-Location backend
-    - mvn clean test
-    - Set-Location ..
+    - mvn -f backend/pom.xml clean test -Dnet.bytebuddy.agent.attacher.disable=true
   artifacts:
     when: always
     reports:
@@ -72,7 +66,7 @@ test:frontend_integration:
     expire_in: 7 days
 
 # ==============================================================================
-# STAGE 2: SECURITY (Auditoría de Vulnerabilidades en Dependencias)
+# STAGE 2: SECURITY
 # ==============================================================================
 
 security:audit_dependencies:
@@ -84,18 +78,13 @@ security:audit_dependencies:
   script:
     - Write-Host "=== 1. Auditoria de dependencias en Frontend (npm audit) ==="
     - Set-Location frontend
-    - |
-      npm audit --audit-level=high
-      if ($LASTEXITCODE -ne 0) {
-        Write-Host "Auditoria completada con alertas permitidas."
-      }
-      $global:LASTEXITCODE = 0
+    - npm audit --audit-level=high; if ($LASTEXITCODE -ne 0) { Write-Host "Auditoria completada con alertas permitidas." }
     - Set-Location ..
     - Write-Host "=== 2. Auditoria de dependencias en Backend ==="
     - Write-Host "Backend empaquetado en Java/Maven: verificado en classpath."
 
 # ==============================================================================
-# STAGE 3: BUILD_AND_PACKAGE (Compilación y Empaquetado SemVer v1.0.0 + Commit SHA)
+# STAGE 3: BUILD_AND_PACKAGE
 # ==============================================================================
 
 build_and_package:artifacts:
@@ -112,18 +101,13 @@ build_and_package:artifacts:
     - npm -v
     - java -version
     - mvn -version
-
     - Write-Host "=== 2. Compilando Backend Spring Boot (JAR de Produccion) ==="
-    - Set-Location backend
-    - mvn clean package -DskipTests
-    - Set-Location ..
-
+    - mvn -f backend/pom.xml clean package -DskipTests -Dnet.bytebuddy.agent.attacher.disable=true
     - Write-Host "=== 3. Compilando Frontend React SPA (Bundle Vite) ==="
     - Set-Location frontend
     - npm ci --prefer-offline
     - npm run build
     - Set-Location ..
-
     - Write-Host "=== 4. Empaquetando artefactos finales v1.0.0 ==="
     - |
       $releaseTag = if ($env:CI_COMMIT_TAG) { $env:CI_COMMIT_TAG } else { $env:SEMVER_VERSION }
@@ -137,11 +121,11 @@ build_and_package:artifacts:
       New-Item -ItemType Directory -Force -Path "dist_package\devops" | Out-Null
 
       Copy-Item "backend\target\*.jar" -Destination "dist_release\"
-      Copy-Item "frontend\dist\*" -Destination "dist_release\public\" -Recurse
+      Copy-Item "frontend\dist\*" -Destination "dist_release\public\" -Recurse -Force
 
       Copy-Item "backend\target\*.jar" -Destination "dist_package\backend\"
-      Copy-Item "frontend\dist\*" -Destination "dist_package\frontend\" -Recurse
-      Copy-Item "devops\render\*" -Destination "dist_package\devops\" -Recurse
+      Copy-Item "frontend\dist\*" -Destination "dist_package\frontend\" -Recurse -Force
+      Copy-Item "devops\render\*" -Destination "dist_package\devops\" -Recurse -Force
 
       $buildInfo = @(
         "Aplicacion: $($env:APP_NAME)",
@@ -162,7 +146,7 @@ build_and_package:artifacts:
       Get-ChildItem -Path "dist_release"
       Get-Item -Path "$zipFile"
   artifacts:
-    name: "release-v1.0.0-$CI_COMMIT_SHORT_SHA"
+    name: release-v1.0.0-$CI_COMMIT_SHORT_SHA
     paths:
       - dist_release/
       - "*.zip"
@@ -171,7 +155,7 @@ build_and_package:artifacts:
     expire_in: 1 week
 
 # ==============================================================================
-# STAGE 4: DEPLOY (Disparo de Deploy Hook hacia Render tras Merge a main)
+# STAGE 4: DEPLOY
 # ==============================================================================
 
 deploy:render_production:
@@ -185,7 +169,7 @@ deploy:render_production:
     name: production
     url: https://incident-hub-backend.onrender.com
   rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: $CI_COMMIT_BRANCH == "main"
       when: on_success
   script:
     - Write-Host "=== Disparando Despliegue Automatico hacia Render PaaS mediante Deploy Hook ==="
