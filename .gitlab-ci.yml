@@ -172,10 +172,7 @@ build_and_package:artifacts:
   artifacts:
     name: release-v1.0.0-$CI_COMMIT_SHORT_SHA
     paths:
-      - dist_release/
       - "*.zip"
-      - backend/target/*.jar
-      - frontend/dist/
     expire_in: 1 week
 
 # ==============================================================================
