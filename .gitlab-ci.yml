@@ -188,27 +188,28 @@ deploy:render_production:
     - self-hosted
     - shell
   needs:
-    - build_and_package:artifacts
+    - job: build_and_package:artifacts
+      artifacts: false
   environment:
     name: production
     url: https://incident-hub-backend.onrender.com
   rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: $CI_COMMIT_BRANCH == "main"
       when: on_success
   script:
     - Write-Host "=== Disparando Despliegue Automatico hacia Render PaaS mediante Deploy Hook ==="
     - |
       function Trigger-DeployHook([string]$serviceName, [string]$hookUrl) {
         if (-not $hookUrl) {
-          Write-Error "ERROR: Falta la variable de Deploy Hook de $serviceName en GitLab CI/CD Variables."
+          Write-Error "ERROR: Falta la variable de Deploy Hook de ${serviceName} en GitLab CI/CD Variables."
           exit 1
         }
-        Write-Host "Enviando POST al Deploy Hook de $serviceName en Render..."
+        Write-Host "Enviando POST al Deploy Hook de ${serviceName} en Render..."
         try {
           $response = Invoke-WebRequest -Uri $hookUrl -Method Post -UseBasicParsing
-          Write-Host "✔ $serviceName: despliegue disparado (HTTP $($response.StatusCode))."
+          Write-Host "OK - ${serviceName}: despliegue disparado (HTTP $($response.StatusCode))."
         } catch {
-          Write-Error "❌ $serviceName: error al invocar el Deploy Hook: $_"
+          Write-Error "FALLO - ${serviceName}: error al invocar el Deploy Hook: $_"
           exit 1
         }
       }
