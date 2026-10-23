@@ -15,6 +15,7 @@ variables:
   APP_NAME: incident-hub
   SEMVER_VERSION: v1.0.0
   MAVEN_OPTS: "-Dnet.bytebuddy.agent.attacher.disable=true -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=WARN"
+  ARTIFACT_COMPRESSION_LEVEL: "fast"
 
 cache:
   key: "${CI_COMMIT_REF_SLUG}"
@@ -138,16 +139,14 @@ build_and_package:artifacts:
       $shortSha = if ($env:CI_COMMIT_SHORT_SHA) { $env:CI_COMMIT_SHORT_SHA } else { "local" }
       $zipFile = "$($env:APP_NAME)-$releaseTag-$shortSha.zip"
 
-      Write-Host "Generando paquete distribuible complementario: $zipFile"
+      Write-Host "Generando paquete distribuible complementario (sin JAR pesado): $zipFile"
       New-Item -ItemType Directory -Force -Path "dist_release\public" | Out-Null
-      New-Item -ItemType Directory -Force -Path "dist_package\backend" | Out-Null
       New-Item -ItemType Directory -Force -Path "dist_package\frontend" | Out-Null
       New-Item -ItemType Directory -Force -Path "dist_package\devops" | Out-Null
 
       Copy-Item "backend\target\*.jar" -Destination "dist_release\"
       Copy-Item "frontend\dist\*" -Destination "dist_release\public\" -Recurse -Force
 
-      Copy-Item "backend\target\*.jar" -Destination "dist_package\backend\"
       Copy-Item "frontend\dist\*" -Destination "dist_package\frontend\" -Recurse -Force
       Copy-Item "devops\render\*" -Destination "dist_package\devops\" -Recurse -Force
 
@@ -172,10 +171,7 @@ build_and_package:artifacts:
   artifacts:
     name: release-v1.0.0-$CI_COMMIT_SHORT_SHA
     paths:
-      - dist_release/
       - "*.zip"
-      - backend/target/*.jar
-      - frontend/dist/
     expire_in: 1 week
 
 # ==============================================================================
@@ -188,27 +184,28 @@ deploy:render_production:
     - self-hosted
     - shell
   needs:
-    - build_and_package:artifacts
+    - job: build_and_package:artifacts
+      artifacts: false
   environment:
     name: production
     url: https://incident-hub-backend.onrender.com
   rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: $CI_COMMIT_BRANCH == "main"
       when: on_success
   script:
     - Write-Host "=== Disparando Despliegue Automatico hacia Render PaaS mediante Deploy Hook ==="
     - |
       function Trigger-DeployHook([string]$serviceName, [string]$hookUrl) {
         if (-not $hookUrl) {
-          Write-Error "ERROR: Falta la variable de Deploy Hook de $serviceName en GitLab CI/CD Variables."
+          Write-Error "ERROR: Falta la variable de Deploy Hook de ${serviceName} en GitLab CI/CD Variables."
           exit 1
         }
-        Write-Host "Enviando POST al Deploy Hook de $serviceName en Render..."
+        Write-Host "Enviando POST al Deploy Hook de ${serviceName} en Render..."
         try {
           $response = Invoke-WebRequest -Uri $hookUrl -Method Post -UseBasicParsing
-          Write-Host "✔ $serviceName: despliegue disparado (HTTP $($response.StatusCode))."
+          Write-Host "OK - ${serviceName}: despliegue disparado (HTTP $($response.StatusCode))."
         } catch {
-          Write-Error "❌ $serviceName: error al invocar el Deploy Hook: $_"
+          Write-Error "FALLO - ${serviceName}: error al invocar el Deploy Hook: $_"
           exit 1
         }
       }
