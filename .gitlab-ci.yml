@@ -18,7 +18,7 @@ default:
 variables:
   APP_NAME: "incident-hub"
   SEMVER_VERSION: "v1.0.0"
-  MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=WARN"
+  MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository -Dnet.bytebuddy.agent.attacher.disable=true -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=WARN"
 
 cache:
   key: "${CI_COMMIT_REF_SLUG}"
