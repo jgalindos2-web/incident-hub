@@ -22,6 +22,24 @@ cache:
     - frontend/node_modules/
 
 # ==============================================================================
+# STAGE 0: DIAGNOSTICO TEMPORAL (Valida cuenta del runner y visibilidad de PATH)
+# ==============================================================================
+
+diag:runner_environment:
+  stage: .pre
+  tags:
+    - self-hosted
+    - shell
+  script:
+    - Write-Host "=== Cuenta de usuario con la que corre el Runner ==="
+    - whoami
+    - Write-Host "=== Rutas detectadas de Node y npm ==="
+    - Get-Command node -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source
+    - Get-Command npm -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source
+    - Write-Host "=== PATH completo visto por este proceso ==="
+    - $env:PATH -split ';'
+
+# ==============================================================================
 # STAGE 1: TEST
 # ==============================================================================
 
@@ -35,7 +53,7 @@ test:backend_and_integration:
     - java -version
     - mvn -version
   script:
-    - mvn -f backend/pom.xml clean test -Dnet.bytebuddy.agent.attacher.disable=true
+    - mvn -f backend/pom.xml clean test "-Dnet.bytebuddy.agent.attacher.disable=true"
   artifacts:
     when: always
     reports:
@@ -102,7 +120,7 @@ build_and_package:artifacts:
     - java -version
     - mvn -version
     - Write-Host "=== 2. Compilando Backend Spring Boot (JAR de Produccion) ==="
-    - mvn -f backend/pom.xml clean package -DskipTests -Dnet.bytebuddy.agent.attacher.disable=true
+    - mvn -f backend/pom.xml clean package -DskipTests "-Dnet.bytebuddy.agent.attacher.disable=true"
     - Write-Host "=== 3. Compilando Frontend React SPA (Bundle Vite) ==="
     - Set-Location frontend
     - npm ci --prefer-offline
@@ -169,7 +187,7 @@ deploy:render_production:
     name: production
     url: https://incident-hub-backend.onrender.com
   rules:
-    - if: $CI_COMMIT_BRANCH == "main"
+    - if: '$CI_COMMIT_BRANCH == "main"'
       when: on_success
   script:
     - Write-Host "=== Disparando Despliegue Automatico hacia Render PaaS mediante Deploy Hook ==="
