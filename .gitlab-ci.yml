@@ -15,6 +15,7 @@ variables:
   APP_NAME: incident-hub
   SEMVER_VERSION: v1.0.0
   MAVEN_OPTS: "-Dnet.bytebuddy.agent.attacher.disable=true -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=WARN"
+  ARTIFACT_COMPRESSION_LEVEL: "fast"
 
 cache:
   key: "${CI_COMMIT_REF_SLUG}"
@@ -138,16 +139,14 @@ build_and_package:artifacts:
       $shortSha = if ($env:CI_COMMIT_SHORT_SHA) { $env:CI_COMMIT_SHORT_SHA } else { "local" }
       $zipFile = "$($env:APP_NAME)-$releaseTag-$shortSha.zip"
 
-      Write-Host "Generando paquete distribuible complementario: $zipFile"
+      Write-Host "Generando paquete distribuible complementario (sin JAR pesado): $zipFile"
       New-Item -ItemType Directory -Force -Path "dist_release\public" | Out-Null
-      New-Item -ItemType Directory -Force -Path "dist_package\backend" | Out-Null
       New-Item -ItemType Directory -Force -Path "dist_package\frontend" | Out-Null
       New-Item -ItemType Directory -Force -Path "dist_package\devops" | Out-Null
 
       Copy-Item "backend\target\*.jar" -Destination "dist_release\"
       Copy-Item "frontend\dist\*" -Destination "dist_release\public\" -Recurse -Force
 
-      Copy-Item "backend\target\*.jar" -Destination "dist_package\backend\"
       Copy-Item "frontend\dist\*" -Destination "dist_package\frontend\" -Recurse -Force
       Copy-Item "devops\render\*" -Destination "dist_package\devops\" -Recurse -Force
 
