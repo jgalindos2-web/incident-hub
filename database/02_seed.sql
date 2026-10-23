@@ -11,6 +11,7 @@ INSERT INTO app_users (username, password, full_name, email, role) VALUES
 ('arodriguez', 'tech123', 'Alejandro Rodriguez', 'alejandro.r@incidenthub.io', 'TECHNICIAN')
 ON CONFLICT (username) DO NOTHING;
 
+
 -- Insert initial sample incidents
 INSERT INTO incidents (title, description, category, priority, status, reporter_name, assigned_technician_id, created_at)
 VALUES
