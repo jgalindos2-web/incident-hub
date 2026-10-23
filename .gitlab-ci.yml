@@ -22,7 +22,7 @@ cache:
     - frontend/node_modules/
 
 # ==============================================================================
-# STAGE 0: DIAGNOSTICO TEMPORAL (Valida cuenta del runner y visibilidad de PATH)
+# STAGE 0: DIAGNOSTICO TEMPORAL
 # ==============================================================================
 
 diag:runner_environment:
@@ -31,6 +31,7 @@ diag:runner_environment:
     - self-hosted
     - shell
   script:
+    - $env:PATH = "C:\Program Files\nodejs;" + $env:PATH
     - Write-Host "=== Cuenta de usuario con la que corre el Runner ==="
     - whoami
     - Write-Host "=== Rutas detectadas de Node y npm ==="
@@ -69,6 +70,7 @@ test:frontend_integration:
     - self-hosted
     - shell
   before_script:
+    - $env:PATH = "C:\Program Files\nodejs;" + $env:PATH
     - Write-Host "=== Instalando dependencias e iniciando pruebas de Frontend (React 18 / Vitest) ==="
     - node -v
     - npm -v
@@ -93,6 +95,8 @@ security:audit_dependencies:
     - self-hosted
     - shell
   allow_failure: true
+  before_script:
+    - $env:PATH = "C:\Program Files\nodejs;" + $env:PATH
   script:
     - Write-Host "=== 1. Auditoria de dependencias en Frontend (npm audit) ==="
     - Set-Location frontend
@@ -113,6 +117,8 @@ build_and_package:artifacts:
   needs:
     - test:backend_and_integration
     - test:frontend_integration
+  before_script:
+    - $env:PATH = "C:\Program Files\nodejs;" + $env:PATH
   script:
     - Write-Host "=== 1. Verificando versiones del entorno de compilacion ==="
     - node -v
