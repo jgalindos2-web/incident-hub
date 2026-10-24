@@ -22,30 +22,17 @@ cache:
   paths:
     - frontend/node_modules/
 
-# ==============================================================================
-# STAGE 0: DIAGNOSTICO TEMPORAL
-# ==============================================================================
-
-diag:runner_environment:
-  stage: .pre
-  tags:
-    - self-hosted
-    - shell
-  script:
-    - $env:PATH = "C:\Program Files\nodejs;" + $env:PATH
-    - Write-Host "=== Cuenta de usuario con la que corre el Runner ==="
-    - whoami
-    - Write-Host "=== Rutas detectadas de Node y npm ==="
-    - Get-Command node -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source
-    - Get-Command npm -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source
-    - Write-Host "=== PATH completo visto por este proceso ==="
-    - $env:PATH -split ';'
+# Regla compartida: estos jobs corren solo en ramas feature, no en main
+.solo_ramas_feature:
+  rules:
+    - if: $CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
 
 # ==============================================================================
 # STAGE 1: TEST
 # ==============================================================================
 
 test:backend_and_integration:
+  extends: .solo_ramas_feature
   stage: test
   tags:
     - self-hosted
@@ -66,6 +53,7 @@ test:backend_and_integration:
     expire_in: 7 days
 
 test:frontend_integration:
+  extends: .solo_ramas_feature
   stage: test
   tags:
     - self-hosted
@@ -91,6 +79,7 @@ test:frontend_integration:
 # ==============================================================================
 
 security:audit_dependencies:
+  extends: .solo_ramas_feature
   stage: security
   tags:
     - self-hosted
@@ -111,6 +100,7 @@ security:audit_dependencies:
 # ==============================================================================
 
 build_and_package:artifacts:
+  extends: .solo_ramas_feature
   stage: build_and_package
   tags:
     - self-hosted
@@ -175,7 +165,7 @@ build_and_package:artifacts:
     expire_in: 1 week
 
 # ==============================================================================
-# STAGE 4: DEPLOY
+# STAGE 4: DEPLOY (solo en main, sin repetir test/build)
 # ==============================================================================
 
 deploy:render_production:
@@ -183,14 +173,12 @@ deploy:render_production:
   tags:
     - self-hosted
     - shell
-  needs:
-    - job: build_and_package:artifacts
-      artifacts: false
+  needs: []
   environment:
     name: production
     url: https://incident-hub-backend.onrender.com
   rules:
-    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       when: on_success
   script:
     - Write-Host "=== Disparando Despliegue Automatico hacia Render PaaS mediante Deploy Hook ==="
