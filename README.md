@@ -74,14 +74,12 @@ incident-hub/
 ├── database/                       # Scripts SQL de inicialización
 │   ├── 01_init.sql                 # Esquema de tablas, índices y restricciones
 │   └── 02_seed.sql                 # Datos de prueba para desarrollo
-├── devops/                         # Infraestructura como Código y Scripts DevOps
+├── devops/                         # Infraestructura como Código y Configuración DevOps
 │   ├── docker/
 │   │   └── docker-compose.yml      # Entorno de pruebas y desarrollo local
 │   ├── render/
 │   │   └── render.yaml             # Blueprint IaC para despliegue en Render PaaS
-│   └── scripts/
-│       ├── register-runner.sh      # Script de instalación y registro de GitLab Runner
-│       └── deploy_environment.sh   # Script de utilería para despliegues locales
+│   └── runner.md                   # Guía de instalación y registro de GitLab Runner
 ├── docs/                           # Documentación de Ingeniería y Arquitectura
 │   ├── arquitectura.md             # Diagrama de secuencia y arquitectura Render PaaS (Mermaid)
 │   ├── branching.md                # GitFlow adaptado, commits trazables y reglas de MR en GitLab
@@ -168,12 +166,9 @@ graph TD
     Hooks --> Deploy
 ```
 
-### 1. Instalación del GitLab Runner Autohospedado
-Ejecuta el script automatizado en tu servidor o equipo local con Linux:
-```bash
-sudo bash devops/scripts/register-runner.sh
-```
-El runner quedará registrado con el tag `self-hosted-runner` y el executor `docker`.
+### 1. Instalación y Registro del GitLab Runner Autohospedado
+Para instalar y registrar el runner en Windows o Linux, consulta la guía detallada paso a paso en [devops/runner.md](devops/runner.md).
+El runner debe registrarse con los tags requeridos por el pipeline (`self-hosted`, `shell` o `docker`).
 
 ### 2. Variables Secretas Requeridas en GitLab CI/CD
 Configuradas en **Settings &rarr; CI/CD &rarr; Variables** con atributos `Masked` y `Protected`:
