@@ -4,7 +4,7 @@
 Por directriz de seguridad de ingeniería DevOps, **ninguna credencial, contraseña, token de acceso o certificado privado debe ser enviado a los repositorios Git**. Esto aplica a:
 - Archivos `.env` reales.
 - Cadenas de conexión hardcodeadas en `application.properties` o código fuente.
-- Tokens de acceso de GitLab o GitHub en scripts (`crear_backlog.sh`, etc.).
+- Tokens de acceso de GitLab o GitHub en scripts o herramientas de automatización.
 - Capturas de pantalla o logs subidos como evidencia en Merge Requests.
 
 ### Mecanismos de Prevención Activos:
