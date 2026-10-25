@@ -11,7 +11,6 @@
 .env.production.local
 .env.*
 !.env.example
-.env.example
 *.key
 *.pem
 *.pfx
@@ -37,6 +36,8 @@ node_modules/
 dist/
 dist_package/
 dist_release/
+dist_backend/
+dist_frontend/
 dist_backend_pkg/
 dist_frontend_pkg/
 dist-ssr/
