@@ -1,0 +1,40 @@
+==============================================================================
+IT INCIDENT HUB - ARTEFACTO ESTÁTICO DE FRONTEND (REACT 18 + VITE)
+==============================================================================
+
+1. CONTENIDO DEL ARTEFACTO:
+   - Carpeta 'dist/': Bundle estatico de produccion con HTML5, JavaScript 
+     minificado (ESM) y hojas de estilo CSS optimizadas con tokens HSL.
+
+2. REGLA FUNDAMENTAL DE DESPLIEGUE (SPA):
+   Al tratarse de una Single Page Application con React Router, el servidor web 
+   DEBE redirigir todas las solicitudes que no coincidan con archivos estaticos 
+   hacia '/index.html' (HTTP 200 Rewrite / Fallback).
+
+3. DESPLIEGUE EN SERVIDORES WEB (PRODUCCION):
+   - Nginx:
+     location / {
+         root /ruta/a/dist;
+         try_files $uri $uri/ /index.html;
+     }
+
+   - Apache (.htaccess):
+     RewriteEngine On
+     RewriteBase /
+     RewriteRule ^index\.html$ - [L]
+     RewriteCond %{REQUEST_FILENAME} !-f
+     RewriteCond %{REQUEST_FILENAME} !-d
+     RewriteRule . /index.html [L]
+
+   - Servicios Estaticos en la Nube (Render Static Site, Cloudflare Pages, S3):
+     Configurar 'dist' como el directorio publico y habilitar SPA Rewrites (/* -> /index.html).
+
+4. PRUEBA RAPIDA EN LOCAL:
+   - Con Node.js:
+     npx serve -s dist -l 3000
+
+   - Con Python 3:
+     python -m http.server 3000 --directory dist
+
+   Abra su navegador en: http://localhost:3000
+==============================================================================

@@ -1,0 +1,46 @@
+==============================================================================
+IT INCIDENT HUB - ARTEFACTO BINARIO DE BACKEND (SPRING BOOT 3)
+==============================================================================
+
+NOTA DE DISTRIBUCIÓN:
+Este artefacto contiene el binario compilado core del proyecto (~46 KB),
+el descriptor de dependencias Maven (pom.xml), configuración de perfiles,
+plantilla de entorno y scripts de arranque para validación y demostración.
+
+1. REQUISITOS DEL SISTEMA:
+   - Java Runtime Environment (JRE) o JDK version 17 LTS o superior.
+   - Base de datos PostgreSQL 15+ en ejecucion y accesible.
+
+2. CONFIGURACION DE VARIABLES DE ENTORNO:
+   El backend utiliza las siguientes variables de entorno para su conexion.
+   Puede definirlas en el sistema operativo o tomar como plantilla el archivo
+   'environment.env.example' adjunto:
+
+   Variable               | Valor por defecto | Descripcion
+   -----------------------|-------------------|--------------------------------------
+   DB_HOST                | localhost         | Servidor / Host de PostgreSQL
+   DB_PORT                | 5432              | Puerto de PostgreSQL
+   DB_NAME                | incident_hub_db   | Nombre de la base de datos
+   DB_USERNAME            | incident_user     | Usuario de PostgreSQL
+   DB_PASSWORD            | (requerido)       | Contrasenia de PostgreSQL
+   PORT                   | 8080              | Puerto HTTP del servicio REST
+   SPRING_PROFILES_ACTIVE | prod              | Perfil de Spring Boot (dev / prod)
+
+3. COMO INICIAR EL SERVICIO:
+   - En Windows:
+     Haga doble clic en 'start.bat' o ejecute desde PowerShell / CMD:
+     java -jar incident-hub-backend-1.0.0.jar
+
+   - En Linux / macOS:
+     chmod +x start.sh
+     ./start.sh
+
+4. VERIFICACION Y DIAGNOSTICO:
+   - Endpoint de Salud (Health Check Actuator):
+     GET http://localhost:8080/api/v1/actuator/health
+   - Context Path Base de la API REST:
+     /api/v1
+   - Endpoints Principales:
+     GET http://localhost:8080/api/v1/incidents
+     GET http://localhost:8080/api/v1/users
+==============================================================================
