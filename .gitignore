@@ -36,6 +36,9 @@ surefire-reports/
 node_modules/
 dist/
 dist_package/
+dist_release/
+dist_backend_pkg/
+dist_frontend_pkg/
 dist-ssr/
 *.local
 npm-debug.log*
