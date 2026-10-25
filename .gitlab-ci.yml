@@ -162,12 +162,18 @@ build_and_package:backend:
       )
       $buildInfo | Set-Content -Path "$distDir/BUILD_INFO.txt" -Encoding UTF8
 
-      Write-Host "[OK] Paquete Backend ligero preparado exitosamente en: $distDir"
+      $zipBackend = "$appName-backend-$releaseTag-$shortSha.zip"
+      if (Test-Path $zipBackend) { Remove-Item -Path $zipBackend -Force }
+      Compress-Archive -Path "$distDir/*" -DestinationPath "$zipBackend" -Force
+
+      Write-Host "[OK] Paquete Backend ligero preparado exitosamente en: $distDir y $zipBackend"
       Get-ChildItem -Path $distDir | Select-Object Name, Length
+      Get-Item -Path $zipBackend | Select-Object Name, Length
   artifacts:
     name: backend-$CI_COMMIT_SHORT_SHA
     paths:
       - dist_backend/
+      - "*-backend-*.zip"
     expire_in: 1 week
 
 build_and_package:frontend:
@@ -223,12 +229,18 @@ build_and_package:frontend:
       )
       $buildInfoFront | Set-Content -Path "$distDir/BUILD_INFO.txt" -Encoding UTF8
 
-      Write-Host "[OK] Paquete Frontend preparado exitosamente en: $distDir"
+      $zipFrontend = "$appName-frontend-$releaseTag-$shortSha.zip"
+      if (Test-Path $zipFrontend) { Remove-Item -Path $zipFrontend -Force }
+      Compress-Archive -Path "$distDir/*" -DestinationPath "$zipFrontend" -Force
+
+      Write-Host "[OK] Paquete Frontend preparado exitosamente en: $distDir y $zipFrontend"
       Get-ChildItem -Path $distDir -Recurse | Select-Object Name, Length
+      Get-Item -Path $zipFrontend | Select-Object Name, Length
   artifacts:
     name: frontend-$CI_COMMIT_SHORT_SHA
     paths:
       - dist_frontend/
+      - "*-frontend-*.zip"
     expire_in: 1 week
 
 # ==============================================================================
