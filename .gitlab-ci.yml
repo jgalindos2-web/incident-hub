@@ -151,7 +151,7 @@ build_and_package:backend:
       )
       $buildInfo | Set-Content -Path "$distDir/BUILD_INFO.txt" -Encoding UTF8
 
-      Write-Host "[OK] Paquete Backend preparado exitosamente en $distDir:"
+      Write-Host "[OK] Paquete Backend preparado exitosamente en: $distDir"
       Get-ChildItem -Path $distDir | Select-Object Name, Length
   artifacts:
     name: backend-$CI_COMMIT_SHORT_SHA
@@ -210,10 +210,10 @@ build_and_package:frontend:
         "Pipeline ID: $pipelineId",
         "Compilacion: React 18 / Vite 5.2 - Node.js 22 LTS"
       )
-      $buildInfoFront | Set-Content -Path "$distDir\BUILD_INFO.txt" -Encoding UTF8
+      $buildInfoFront | Set-Content -Path "$distDir/BUILD_INFO.txt" -Encoding UTF8
 
-      Write-Host "[OK] Paquete Frontend preparado exitosamente en $distDir:"
-      Get-ChildItem -Path "$distDir" -Recurse | Select-Object Name, Length
+      Write-Host "[OK] Paquete Frontend preparado exitosamente en: $distDir"
+      Get-ChildItem -Path $distDir -Recurse | Select-Object Name, Length
   artifacts:
     name: frontend-$CI_COMMIT_SHORT_SHA
     paths:
