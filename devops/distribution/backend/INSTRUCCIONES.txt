@@ -1,6 +1,11 @@
 ==============================================================================
-IT INCIDENT HUB - ARTEFACTO EJECUTABLE DE BACKEND (SPRING BOOT 3)
+IT INCIDENT HUB - ARTEFACTO BINARIO DE BACKEND (SPRING BOOT 3)
 ==============================================================================
+
+NOTA DE DISTRIBUCIÓN:
+Este artefacto contiene el binario compilado core del proyecto (~46 KB),
+el descriptor de dependencias Maven (pom.xml), configuración de perfiles,
+plantilla de entorno y scripts de arranque para validación y demostración.
 
 1. REQUISITOS DEL SISTEMA:
    - Java Runtime Environment (JRE) o JDK version 17 LTS o superior.
