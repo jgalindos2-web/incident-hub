@@ -15,23 +15,14 @@
 
 **IT Incident Hub** es una plataforma web para la gestión integral de incidentes de soporte tecnológico alineada a las mejores prácticas de **ITIL v4**. La solución permite el levantamiento, categorización, asignación técnica, control estricto de transiciones de estado, bitácora de resoluciones y analítica operacional en tiempo real.
 
-### Flujo de Sincronización y CI/CD Real:
+### Flujo DevOps End-to-End Actualizado:
 1. **Centro de Operaciones (GitLab):** Es el repositorio de trabajo principal donde se crean las ramas (`feature/*`, `fix/*`), se gestionan las tareas en los tableros y se abren los **Merge Requests**.
-2. **Sincronización por Mirroring (GitHub):** GitLab sincroniza automáticamente cada commit y rama hacia un repositorio espejo en GitHub.
-3. **Quality Gate Complementario (GitHub Actions):** Al recibir la sincronización del Mirror, GitHub Actions ejecuta el workflow [pr-validation.yml](file:///c:/Users/50254/Documents/Analisis2/ProyectoFinal/ProyectoFinalAnalisis/incident-hub/.github/workflows/pr-validation.yml) evaluando linters (ESLint, Checkstyle), pruebas de backend y ejecutando la **detección anti-filtración de secretos o archivos `.env`**. El resultado se reporta de vuelta a GitLab mediante la **GitLab Commit Status API** (mostrando el Check Verde o X Roja en el Merge Request).
-4. **CI/CD Principal (GitLab CI/CD):** Tras aprobarse las validaciones y realizar el Merge a `main`, el pipeline [.gitlab-ci.yml](file:///c:/Users/50254/Documents/Analisis2/ProyectoFinal/ProyectoFinalAnalisis/incident-hub/.gitlab-ci.yml) se ejecuta en un **GitLab Runner Self-Hosted** (`self-hosted-runner`), corriendo pruebas de integración, auditoría de vulnerabilidades con `npm audit`, compilando el backend y frontend, y generando un artefacto `.zip` con **Semantic Versioning (`v1.0.0`)** y el hash del commit.
-5. **Despliegue Continuo (Render PaaS):** El runner dispara el despliegue automático hacia Render mediante **Deploy Hooks** (solicitudes HTTP POST autenticadas).
-6. **Seguridad Estricta de Secretos:** **PROHIBIDO subir archivos `.env` a Git**. Las credenciales se inyectan en tiempo de ejecución en GitLab CI/CD Variables, GitHub Secrets y en el Dashboard de Render.
+2. **CI/CD Principal (GitLab CI/CD en Runner Self-Hosted):** Cada commit en ramas y Merge Requests ejecuta el pipeline [.gitlab-ci.yml](file:///c:/Users/50254/Documents/Analisis2/ProyectoFinal/ProyectoFinalAnalisis/incident-hub/.gitlab-ci.yml) en un **GitLab Runner Self-Hosted en Windows** (`tags: [self-hosted, shell]`), corriendo diagnósticos (`.pre`), pruebas unitarias e integradas (`mvn test` con JUnit 5 + Mockito y `npm test` con Vitest), análisis de código (Checkstyle y ESLint), auditoría de seguridad (`npm audit`), y compilando artefactos de entrega desacoplados e independientes para backend (`~55 KB`) y frontend (`~74 KB`).
+3. **Despliegue Continuo (Render PaaS):** Tras aprobarse el Merge Request y fusionarse en `main`, el job `deploy:render_production` en el runner autohospedado dispara el despliegue automático hacia Render mediante **Deploy Hooks** HTTPS autenticados para el Backend (Docker) y Frontend (Static Site CDN).
+4. **Sincronización Automática por Mirroring (GitHub):** GitLab sincroniza automáticamente cada commit y la rama `main` hacia el repositorio espejo en GitHub.
+5. **Publicación Oficial de Release (GitHub Actions):** Al recibir la sincronización del merge en `main`, GitHub Actions ejecuta el workflow [.github/workflows/release.yml](file:///c:/Users/50254/Documents/Analisis2/ProyectoFinal/ProyectoFinalAnalisis/incident-hub/.github/workflows/release.yml), compilando y publicando de forma oficial el Release con notas de versión autogeneradas y paquetes `.zip` descargables adjuntos.
+6. **Seguridad Estricta de Secretos:** **PROHIBIDO subir archivos `.env` a Git**. Las credenciales se inyectan en tiempo de ejecución en GitLab CI/CD Variables (`Masked` + `Protected`), GitHub Secrets y en el Dashboard de Render.
 
----
-
-## 👥 2. Integrantes del Equipo (Simulación de Roles)
-
-| Integrante Simulado | Rol Técnico DevOps | Correo Electrónico | Responsabilidades Clave |
-| :--- | :--- | :--- | :--- |
-| **Carlos Gómez** | Lead DevOps & Backend Engineer | `carlos.gomez.devops@incidenthub.io` | Pipeline `.gitlab-ci.yml`, Runner Self-Hosted, Arquitectura Render, Spring Boot Core, Seguridad y Releases. |
-| **Sofía Herrera** | Frontend & UX Specialist | `sofia.herrera.frontend@incidenthub.io` | Single Page Application (React 18 + Vite), Diseño Vanilla CSS Glassmorphism, ESLint y Vitest. |
-| **Mateo Ruiz** | QA & Reliability Engineer | `mateo.ruiz.qa@incidenthub.io` | Gestión de Backlog en GitLab, Suites JUnit 5/Mockito, Auditoría de Deuda Técnica y Staging Gates. |
 
 ### Comandos para Alternar Identidad en Git Local:
 ```bash
@@ -56,7 +47,7 @@ git config user.email "mateo.ruiz.qa@incidenthub.io"
 incident-hub/
 ├── .github/
 │   └── workflows/
-│       └── pr-validation.yml       # Quality Gate de GitHub Actions (Mirroring, Linters, Cero .env)
+│       └── release.yml             # Publicación oficial de Releases en GitHub con artefactos .zip
 ├── .gitlab/
 │   └── merge_request_templates/    # Plantillas de revisión de código para Merge Requests
 ├── backend/                        # API REST Spring Boot 3 (Java 17 + Maven)
@@ -75,17 +66,14 @@ incident-hub/
 │   ├── 01_init.sql                 # Esquema de tablas, índices y restricciones
 │   └── 02_seed.sql                 # Datos de prueba para desarrollo
 ├── devops/                         # Infraestructura como Código y Configuración DevOps
+│   ├── distribution/               # Plantillas y scripts de distribución independiente (backend/frontend)
 │   ├── docker/
 │   │   └── docker-compose.yml      # Entorno de pruebas y desarrollo local
 │   ├── render/
 │   │   └── render.yaml             # Blueprint IaC para despliegue en Render PaaS
 │   └── runner.md                   # Guía de instalación y registro de GitLab Runner
-├── docs/                           # Documentación de Ingeniería y Arquitectura
-│   ├── arquitectura.md             # Diagrama de secuencia y arquitectura Render PaaS (Mermaid)
-│   ├── branching.md                # GitFlow adaptado, commits trazables y reglas de MR en GitLab
-│   ├── deuda-tecnica.md            # Matriz de 5 deudas técnicas y 2 casos resueltos
-│   ├── seguridad-dependencias.md   # Auditoría de CVEs y política de cero .env en Git
-│   └── estrategia-release.md       # Ambientes en Render, SemVer (v1.0.0), rollback y checklist
+├── docs/                           # Documentación Integral del Sistema
+│   └── documentacion-sistema.md    # Documento técnico consolidado (Arquitectura, DevOps, Deuda Técnica, Seguridad)
 ├── .env.example                    # Plantilla de variables de entorno (sin credenciales)
 ├── .gitignore                      # Bloqueo estricto de secretos, .env y binarios
 ├── .gitlab-ci.yml                  # Pipeline principal de GitLab CI/CD (Self-Hosted Runner)
@@ -221,9 +209,15 @@ cd frontend && npm run test
 
 ## 📄 8. Documentación Detallada de Ingeniería
 
-Consulta los documentos técnicos correspondientes en la carpeta `/docs`:
-- [docs/arquitectura.md](file:///c:/Users/50254/Documents/Analisis2/ProyectoFinal/ProyectoFinalAnalisis/incident-hub/docs/arquitectura.md): Diagramas de secuencia Mermaid, topología en Render y ciclo ITIL.
-- [docs/branching.md](file:///c:/Users/50254/Documents/Analisis2/ProyectoFinal/ProyectoFinalAnalisis/incident-hub/docs/branching.md): Convenciones GitFlow, commits trazables (`#ID` / `AB#ID`) y reglas de MR.
-- [docs/deuda-tecnica.md](file:///c:/Users/50254/Documents/Analisis2/ProyectoFinal/ProyectoFinalAnalisis/incident-hub/docs/deuda-tecnica.md): Matriz de 5 deudas técnicas y resolución trazable de 2 deudas.
-- [docs/seguridad-dependencias.md](file:///c:/Users/50254/Documents/Analisis2/ProyectoFinal/ProyectoFinalAnalisis/incident-hub/docs/seguridad-dependencias.md): Matriz de CVEs evaluados y política estricta de Cero Archivos `.env`.
-- [docs/estrategia-release.md](file:///c:/Users/50254/Documents/Analisis2/ProyectoFinal/ProyectoFinalAnalisis/incident-hub/docs/estrategia-release.md): Topología de ambientes, empaquetado SemVer (`v1.0.0`), rollback y checklist de release.
+Toda la documentación técnica del sistema, arquitectura, flujo DevOps y gestión de deuda técnica ha sido unificada y actualizada en un único documento maestro dentro de `/docs`:
+- [docs/documentacion-sistema.md](file:///c:/Users/50254/Documents/Analisis2/ProyectoFinal/ProyectoFinalAnalisis/incident-hub/docs/documentacion-sistema.md): Documento técnico integral que consolida:
+  1. Visión general, propósito del sistema y alineación ITIL v4.
+  2. Arquitectura de software, diagramas Mermaid y topología en Render PaaS.
+  3. Modelo de datos entidad-relación y diccionario de tablas.
+  4. Especificación completa de contratos y endpoints API REST (`/api/v1`).
+  5. Tabla de equivalencias frente a Azure DevOps.
+  6. Limitaciones operativas y mitigaciones en Render Free Tier.
+  7. Flujo DevOps end-to-end (push &rarr; runner self-hosted &rarr; builds independientes &rarr; CD Render &rarr; Mirroring &rarr; GitHub Release).
+  8. **Registro y plan de gestión de deuda técnica** (matriz de 5 deudas reales actualizadas: DT-01 a DT-05).
+  9. Seguridad DevSecOps, auditoría de vulnerabilidades CVEs y política Cero Secretos.
+  10. Estrategia de Branching (GitFlow adaptado), commits convencionales, procedimientos de rollback y checklist de lanzamiento.
