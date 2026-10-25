@@ -1,0 +1,143 @@
+name: Production Release (GitHub Actions)
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: 🚀 Build, Package & Publish GitHub Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Clonar Código Fuente
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ------------------------------------------------------------------------
+      # Paso 1: Configurar Entornos de Compilación
+      # ------------------------------------------------------------------------
+      - name: ☕ Configurar Java 17 LTS (Eclipse Temurin)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: 🟩 Configurar Node.js 20 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      # ------------------------------------------------------------------------
+      # Paso 2: Compilación y Empaquetado de Backend
+      # ------------------------------------------------------------------------
+      - name: 🔨 Compilar y Empaquetar Backend Spring Boot
+        run: |
+          echo "=== 1. Compilando Backend con Maven ==="
+          mvn -f backend/pom.xml clean package -DskipTests -B
+
+          echo "=== 2. Preparando distribución de Backend ==="
+          mkdir -p dist_backend
+          
+          # Copiar el JAR generado
+          cp backend/target/*.jar dist_backend/
+          
+          # Copiar utilidades de distribución (scripts start, instrucciones y plantilla de entorno)
+          if [ -d "devops/distribution/backend" ]; then
+            cp -r devops/distribution/backend/* dist_backend/
+          fi
+          if [ -f ".env.example" ]; then
+            cp .env.example dist_backend/environment.env.example
+          fi
+
+          # Metadatos del build
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          cat <<EOF > dist_backend/BUILD_INFO.txt
+          Aplicacion: incident-hub-backend
+          Version: v1.0.0
+          Commit SHA: ${{ github.sha }}
+          Commit Corto: ${SHORT_SHA}
+          Rama: main
+          Fecha de Build: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          Plataforma: GitHub Actions (ubuntu-latest)
+          Compilacion: Spring Boot 3.2.5 / Java 17 LTS
+          EOF
+
+          # Generar archivo ZIP de backend
+          cd dist_backend && zip -r ../incident-hub-backend-v1.0.0-${SHORT_SHA}.zip * && cd ..
+          echo "✔ Artefacto Backend generado:"
+          ls -lh incident-hub-backend-*.zip
+
+      # ------------------------------------------------------------------------
+      # Paso 3: Compilación y Empaquetado de Frontend
+      # ------------------------------------------------------------------------
+      - name: 🚀 Compilar y Empaquetar Frontend React SPA
+        run: |
+          echo "=== 1. Instalando dependencias y compilando Frontend con Vite ==="
+          cd frontend
+          npm ci --prefer-offline
+          npm run build
+          cd ..
+
+          echo "=== 2. Preparando distribución de Frontend ==="
+          mkdir -p dist_frontend/dist
+          cp -r frontend/dist/* dist_frontend/dist/
+          if [ -d "devops/distribution/frontend" ]; then
+            cp -r devops/distribution/frontend/* dist_frontend/
+          fi
+
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          cat <<EOF > dist_frontend/BUILD_INFO.txt
+          Aplicacion: incident-hub-frontend
+          Version: v1.0.0
+          Commit SHA: ${{ github.sha }}
+          Commit Corto: ${SHORT_SHA}
+          Rama: main
+          Fecha de Build: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          Plataforma: GitHub Actions (ubuntu-latest)
+          Compilacion: React 18 / Vite 5.2 (Node.js 20 LTS)
+          EOF
+
+          cd dist_frontend && zip -r ../incident-hub-frontend-v1.0.0-${SHORT_SHA}.zip * && cd ..
+          echo "✔ Artefacto Frontend generado:"
+          ls -lh incident-hub-frontend-*.zip
+
+      # ------------------------------------------------------------------------
+      # Paso 4: Determinar Versión y Publicar Release en GitHub
+      # ------------------------------------------------------------------------
+      - name: 🏷️ Determinar Parámetros del Release
+        id: vars
+        run: |
+          TAG_VERSION="v1.0.0"
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          echo "tag_name=${TAG_VERSION}" >> $GITHUB_OUTPUT
+          echo "release_title=IT Incident Hub ${TAG_VERSION} (Build ${SHORT_SHA})" >> $GITHUB_OUTPUT
+          echo "short_sha=${SHORT_SHA}" >> $GITHUB_OUTPUT
+
+      - name: 📦 Publicar Release en GitHub con Artefactos
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.vars.outputs.tag_name }}
+          name: ${{ steps.vars.outputs.release_title }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          make_latest: true
+          files: |
+            incident-hub-backend-*.zip
+            incident-hub-frontend-*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
