@@ -141,13 +141,9 @@ build_and_package:backend:
         Copy-Item "backend/target/*.jar" -Destination $distDir -Force
       }
 
-      # Copiar descriptor de dependencias y configuraciones esenciales
+      # Copiar descriptor de dependencias y archivos de distribución
       Copy-Item "backend/pom.xml" -Destination $distDir -Force
-      Copy-Item "backend/src/main/resources/application.properties" -Destination $distDir -Force
       Copy-Item "devops/distribution/backend/*" -Destination $distDir -Recurse -Force
-      if (Test-Path ".env.example") {
-        Copy-Item ".env.example" -Destination "$distDir/environment.env.example" -Force
-      }
 
       $buildInfo = @(
         "Aplicacion: $appName-backend",
