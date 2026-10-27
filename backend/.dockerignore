@@ -1,0 +1,10 @@
+# Docker build ignore for Backend
+**/.env
+**/.env.*
+!**/.env.example
+target/
+.git/
+.gitignore
+*.md
+.idea/
+.vscode/
