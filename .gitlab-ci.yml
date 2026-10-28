@@ -196,6 +196,8 @@ build_and_package:frontend:
     - Set-Location frontend
     - npm ci --prefer-offline
     - npm run build
+    - Write-Host "=== 2.1. Verificando que el bundle de produccion no contenga secretos ==="
+    - npm run verify-bundle
     - Set-Location ..
     - Write-Host "=== 3. Preparando paquete distribuible de Frontend ==="
     - |
@@ -221,7 +223,7 @@ build_and_package:frontend:
         "Rama: $branch",
         "Fecha de Build: $(Get-Date -Format 'yyyy-MM-ddTHH:mm:ssZ')",
         "Pipeline ID: $pipelineId",
-        "Compilacion: React 18 / Vite 5.2 - Node.js 22 LTS"
+        "Compilacion: React 18 / Vite 6.4 - Node.js 22 LTS"
       )
       $buildInfoFront | Set-Content -Path "$distDir/BUILD_INFO.txt" -Encoding UTF8
 
