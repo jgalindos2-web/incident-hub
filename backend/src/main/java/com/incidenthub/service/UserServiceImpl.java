@@ -8,6 +8,7 @@ import com.incidenthub.model.User;
 import com.incidenthub.repository.UserRepository;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,9 +20,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public UserServiceImpl(UserRepository userRepository) {
+    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
@@ -57,10 +60,13 @@ public class UserServiceImpl implements UserService {
             throw new BadRequestException("El correo electrónico '" + email + "' ya se encuentra registrado.");
         }
 
+        String rawPassword = request.getPassword().trim();
+        String hashedPassword = passwordEncoder.encode(rawPassword);
+
         User newUser = new User(
                 null,
                 username,
-                request.getPassword().trim(),
+                hashedPassword,
                 request.getFullName().trim(),
                 email,
                 role
