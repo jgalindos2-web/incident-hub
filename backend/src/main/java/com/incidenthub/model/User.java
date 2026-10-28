@@ -22,8 +22,9 @@ public class User {
     @Column(nullable = false, unique = true, length = 50)
     private String username;
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @Column(nullable = false, length = 100)
-    private String password = "password123";
+    private String password = "";
 
     @Column(name = "full_name", nullable = false, length = 100)
     private String fullName;
@@ -44,7 +45,7 @@ public class User {
     public User(Long id, String username, String password, String fullName, String email, String role) {
         this.id = id;
         this.username = username;
-        this.password = password != null ? password : "password123";
+        this.password = password != null ? password : "";
         this.fullName = fullName;
         this.email = email;
         this.role = role;
@@ -52,7 +53,7 @@ public class User {
     }
 
     public User(Long id, String username, String fullName, String email, String role) {
-        this(id, username, "password123", fullName, email, role);
+        this(id, username, "", fullName, email, role);
     }
 
     public Long getId() {

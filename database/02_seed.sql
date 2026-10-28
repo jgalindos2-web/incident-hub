@@ -3,12 +3,13 @@
 -- ========================================================
 
 -- Insert mock technicians / system users
+-- Nota: Contraseñas almacenadas con hash seguro BCrypt (Equivalentes en texto claro: admin123 para ADMIN, tech123 para TECHNICIAN)
 INSERT INTO app_users (username, password, full_name, email, role) VALUES
-('cgomez', 'admin123', 'Carlos Gomez', 'carlos.gomez.devops@incidenthub.io', 'ADMIN'),
-('admin', 'admin123', 'Administrador General', 'admin@incidenthub.io', 'ADMIN'),
-('sherrera', 'tech123', 'Sofia Herrera', 'sofia.herrera.frontend@incidenthub.io', 'TECHNICIAN'),
-('mruiz', 'tech123', 'Mateo Ruiz', 'mateo.ruiz.qa@incidenthub.io', 'TECHNICIAN'),
-('arodriguez', 'tech123', 'Alejandro Rodriguez', 'alejandro.r@incidenthub.io', 'TECHNICIAN')
+('cgomez', '$2a$10$sPeffxHz7RqSeT6y5iGJvuVlBIkBK9yR0I4nSsKNwwSZGH1k/zN82', 'Carlos Gomez', 'carlos.gomez.devops@incidenthub.io', 'ADMIN'),
+('admin', '$2a$10$sPeffxHz7RqSeT6y5iGJvuVlBIkBK9yR0I4nSsKNwwSZGH1k/zN82', 'Administrador General', 'admin@incidenthub.io', 'ADMIN'),
+('sherrera', '$2a$10$yuZfg/LMNrQff/bB5JAzE.UFk6rVQ6DHJqQ3tFGrsbiEUkK1QmXRe', 'Sofia Herrera', 'sofia.herrera.frontend@incidenthub.io', 'TECHNICIAN'),
+('mruiz', '$2a$10$yuZfg/LMNrQff/bB5JAzE.UFk6rVQ6DHJqQ3tFGrsbiEUkK1QmXRe', 'Mateo Ruiz', 'mateo.ruiz.qa@incidenthub.io', 'TECHNICIAN'),
+('arodriguez', '$2a$10$yuZfg/LMNrQff/bB5JAzE.UFk6rVQ6DHJqQ3tFGrsbiEUkK1QmXRe', 'Alejandro Rodriguez', 'alejandro.r@incidenthub.io', 'TECHNICIAN')
 ON CONFLICT (username) DO NOTHING;
 
 

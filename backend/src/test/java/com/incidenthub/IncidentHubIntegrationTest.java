@@ -152,4 +152,13 @@ class IncidentHubIntegrationTest {
                         .content(objectMapper.writeValueAsString(adminRequest)))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    @DisplayName("Actuator: Health endpoint responde UP y no expone detalles internos ni de base de datos")
+    void shouldValidateActuatorHealthWithoutLeakingInternalDetails() throws Exception {
+        mockMvc.perform(get("/actuator/health"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status", is("UP")))
+                .andExpect(jsonPath("$.components").doesNotExist());
+    }
 }

@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,10 +32,13 @@ public class AuthController {
 
     private final UserRepository userRepository;
     private final UserService userService;
+    private final PasswordEncoder passwordEncoder;
 
-    public AuthController(UserRepository userRepository, UserService userService) {
+    public AuthController(UserRepository userRepository, UserService userService,
+                          PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.userService = userService;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @PostMapping("/register")
@@ -68,8 +72,25 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
         }
 
-        // Validación de contraseña en base de datos
-        if (!user.getPassword().equals(request.getPassword().trim())) {
+        // Validación segura de contraseña con BCrypt y soporte de migración
+        String rawPassword = request.getPassword().trim();
+        String storedPassword = user.getPassword();
+        boolean passwordMatches = false;
+
+        if (storedPassword != null && !storedPassword.isEmpty()) {
+            if (storedPassword.startsWith("$2a$") || storedPassword.startsWith("$2b$")
+                    || storedPassword.startsWith("$2y$")) {
+                passwordMatches = passwordEncoder.matches(rawPassword, storedPassword);
+            } else if (storedPassword.equals(rawPassword)) {
+                // Fallback para contraseñas heredadas en texto plano:
+                // Valida y migra transparentemente el hash a BCrypt en la base de datos
+                passwordMatches = true;
+                user.setPassword(passwordEncoder.encode(rawPassword));
+                userRepository.save(user);
+            }
+        }
+
+        if (!passwordMatches) {
             Map<String, String> error = Collections.singletonMap(
                     "message", "Contraseña incorrecta. Verifique sus credenciales.");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);

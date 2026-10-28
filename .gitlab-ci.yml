@@ -85,7 +85,6 @@ security:audit_dependencies:
   tags:
     - self-hosted
     - shell
-  allow_failure: true
   before_script:
     - $env:PATH = "C:\Program Files\nodejs;" + $env:PATH
   script:
@@ -93,8 +92,10 @@ security:audit_dependencies:
     - Set-Location frontend
     - 'npm audit --audit-level=high; if ($LASTEXITCODE -ne 0) { Write-Host "Auditoria completada con alertas permitidas." }'
     - Set-Location ..
-    - Write-Host "=== 2. Auditoria de dependencias en Backend ==="
-    - 'Write-Host "Backend empaquetado en Java/Maven: verificado en classpath."'
+    - Write-Host "=== 2. Auditoria de dependencias en Backend (DevSecOps) ==="
+    - node backend/scripts/audit-backend-dependencies.js
+    - Write-Host "=== 3. Pruebas automatizadas de los scripts de seguridad (DevSecOps) ==="
+    - node backend/scripts/test-security-scripts.js
 
 # ==============================================================================
 # STAGE 3: BUILD_AND_PACKAGE (Separados por componente)
@@ -114,10 +115,13 @@ build_and_package:backend:
       - runner_system_failure
       - api_failure
       - stuck_or_timeout_failure
+  before_script:
+    - $env:PATH = "C:\Program Files\nodejs;" + $env:PATH
   script:
-    - Write-Host "=== 1. Verificando entorno de compilacion Backend (Java 17 / Maven) ==="
+    - Write-Host "=== 1. Verificando entorno de compilacion Backend (Java 17 / Maven / Node) ==="
     - java -version
     - mvn -version
+    - node -v
     - Write-Host "=== 2. Compilando Backend Spring Boot (Core JAR de Produccion / Demo) ==="
     - mvn -f backend/pom.xml clean package -DskipTests "-Dnet.bytebuddy.agent.attacher.disable=true"
     - Write-Host "=== 3. Preparando paquete distribuible optimizado y ligero de Backend ==="
@@ -153,10 +157,18 @@ build_and_package:backend:
         "Rama: $branch",
         "Fecha de Build: $(Get-Date -Format 'yyyy-MM-ddTHH:mm:ssZ')",
         "Pipeline ID: $pipelineId",
-        "Compilacion: Spring Boot 3.2.5 / Java 17 LTS (Core Binary Build - Demostracion)",
+        "Compilacion: Spring Boot 3.2.12 / Java 17 LTS (Core Binary Build - Demostracion)",
         "Nota: Binario optimizado y ligero para validacion de pipeline y artefacto academico."
       )
       $buildInfo | Set-Content -Path "$distDir/BUILD_INFO.txt" -Encoding UTF8
+
+      # Verificación de seguridad de artefactos: asegurar Cero Secretos en el paquete
+      Write-Host "=== 3.1. Verificando que el paquete distribuible de backend no contenga secretos ==="
+      node backend/scripts/verify-backend-secrets.js dist_backend
+      if ($LASTEXITCODE -ne 0) {
+        Write-Error "ERROR: Se detectaron secretos o archivos prohibidos en dist_backend."
+        exit 1
+      }
 
       $zipBackend = "$appName-backend-$releaseTag-$shortSha.zip"
       if (Test-Path $zipBackend) { Remove-Item -Path $zipBackend -Force }
