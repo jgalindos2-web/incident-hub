@@ -156,23 +156,47 @@ function inspectArchive(archivePath, relativePath, violations) {
   let auditedBytes = 0;
 
   try {
-    // Extraer en lotes para evitar líneas de comando demasiado largas
+    // Extraer en lotes para evitar límites de longitud en línea de comandos
     const BATCH_SIZE = 25;
     for (let i = 0; i < configEntries.length; i += BATCH_SIZE) {
       const batch = configEntries.slice(i, i + BATCH_SIZE);
-      const args = batch.map(e => `"${e}"`).join(' ');
+      const quotedEntries = batch.map(e => `"${e}"`).join(' ');
+      let batchExtracted = false;
+
+      // Intento 1: tar (funciona con bsdtar en Windows/macOS y archivos tar)
       try {
-        execSync(`tar -xf "${archivePath}" -C "${tempExtractDir}" ${args}`, {
+        execSync(`tar -xf "${archivePath}" -C "${tempExtractDir}" ${quotedEntries}`, {
           stdio: ['pipe', 'pipe', 'ignore'],
           timeout: 20000
         });
-      } catch (extractErr) {
-        // Si tar falla con entradas específicas, intentar extracción completa en temp
-        execSync(`tar -xf "${archivePath}" -C "${tempExtractDir}"`, {
-          stdio: ['pipe', 'pipe', 'ignore'],
-          timeout: 30000
-        });
-        break;
+        batchExtracted = true;
+      } catch (_) {}
+
+      // Intento 2: jar xf (estándar multiplataforma con JDK 17, indispensable en Ubuntu/Linux para ZIP/JAR)
+      if (!batchExtracted) {
+        try {
+          execSync(`jar xf "${archivePath}" ${quotedEntries}`, {
+            cwd: tempExtractDir,
+            stdio: ['pipe', 'pipe', 'ignore'],
+            timeout: 20000
+          });
+          batchExtracted = true;
+        } catch (_) {}
+      }
+
+      // Intento 3: unzip (estándar en entornos Linux / Ubuntu)
+      if (!batchExtracted) {
+        try {
+          execSync(`unzip -q -o "${archivePath}" ${quotedEntries} -d "${tempExtractDir}"`, {
+            stdio: ['pipe', 'pipe', 'ignore'],
+            timeout: 20000
+          });
+          batchExtracted = true;
+        } catch (_) {}
+      }
+
+      if (!batchExtracted) {
+        throw new Error(`No se pudieron extraer las entradas de configuración usando tar, jar ni unzip.`);
       }
     }
 

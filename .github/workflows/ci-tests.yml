@@ -1,0 +1,116 @@
+name: CI Tests (GitHub Actions)
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ci-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ============================================================================
+  # JOB 1: BACKEND - Pruebas Unitarias, Integración y Auditoría DevSecOps
+  # ============================================================================
+  backend-tests:
+    name: ☕ Backend (Java 17 / Maven / Spring Boot)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: 📥 Clonar Código Fuente
+        uses: actions/checkout@v4
+
+      - name: ☕ Configurar Java 17 LTS (Eclipse Temurin)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: 🟩 Configurar Node.js 20 LTS (para scripts de seguridad)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 🧪 Ejecutar Pruebas de Backend
+        run: |
+          echo "=== Ejecutando pruebas unitarias y de integración de Backend ==="
+          mvn -f backend/pom.xml clean test -B
+
+      - name: 📊 Publicar Reportes Surefire de Backend
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-surefire-reports
+          path: backend/target/surefire-reports/
+          retention-days: 7
+
+      - name: 🛡️ Ejecutar Auditoría de Dependencias de Backend
+        run: |
+          echo "=== Ejecutando auditoría de seguridad de dependencias ==="
+          node backend/scripts/audit-backend-dependencies.js
+
+      - name: 🔍 Validar Integridad de Scripts DevSecOps
+        run: |
+          echo "=== Ejecutando pruebas unitarias de scripts DevSecOps ==="
+          node backend/scripts/test-security-scripts.js
+
+  # ============================================================================
+  # JOB 2: FRONTEND - Pruebas de Integración, Cobertura y Bundle Security
+  # ============================================================================
+  frontend-tests:
+    name: ⚛️ Frontend (React 18 / Vitest / Vite)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: 📥 Clonar Código Fuente
+        uses: actions/checkout@v4
+
+      - name: 🟩 Configurar Node.js 20 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 📦 Instalar Dependencias Reproducibles (npm ci)
+        working-directory: frontend
+        run: |
+          echo "=== Instalando dependencias con npm ci ==="
+          npm ci --prefer-offline
+
+      - name: 🧪 Ejecutar Pruebas con Cobertura (Vitest)
+        working-directory: frontend
+        run: |
+          echo "=== Ejecutando suite de pruebas de Frontend con cobertura ==="
+          npx vitest run --coverage
+
+      - name: 📊 Publicar Reporte de Cobertura de Frontend
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-coverage-report
+          path: frontend/coverage/
+          retention-days: 7
+
+      - name: 🔨 Compilar Bundle de Producción (Vite)
+        working-directory: frontend
+        run: |
+          echo "=== Compilando bundle de producción ==="
+          npm run build
+
+      - name: 🔍 Verificar Cero Secretos en Bundle de Producción
+        working-directory: frontend
+        run: |
+          echo "=== Verificando que dist no contenga secretos ni credenciales ==="
+          npm run verify-bundle
